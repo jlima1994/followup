@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>SystemDiarias — Gestão de Serviços e Pagamentos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:#2563eb}
+@media(max-width:768px){input,select,textarea{font-size:16px!important}}
+.tab-active{background:#2563eb!important;color:white!important;border-color:#2563eb!important}
+
+/* REGRAS DE IMPRESSÃO LIMPA */
+@media print {
+  header, nav, #toast, .no-print, #auth-screen, #modal-senha { 
+    display: none !important; 
+  }
+  body, main { 
+    background: white !important; 
+    color: black !important; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    min-height: auto !important;
+  }
+  .tab-pane { 
+    display: none !important; 
+  }
+  #aba-relatorios { 
+    display: block !important; 
+  }
+  #relatorio-conteudo { 
+    border: none !important; 
+    box-shadow: none !important; 
+  }
+  .bloco-prestador {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table { 
+    page-break-inside: auto; 
+  }
+  tr { 
+    page-break-inside: avoid; 
+    page-break-after: auto; 
+  }
+}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+<!-- TELA DE AUTENTICAÇÃO COM LOGIN E CADASTRO -->
+<div id="auth-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+ <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+  <div class="text-center">
+   <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2">
+    <i class="fa-solid fa-route"></i>
+   </div>
+   <h1 class="text-xl font-black">SystemDiarias</h1>
+   <p class="text-xs text-slate-500 mt-1">Gestão de serviços e pagamentos</p>
+  </div>
+
+  <div class="flex border rounded-xl p-1 bg-slate-100 text-xs font-bold">
+   <button type="button" id="tab-auth-login" class="flex-1 py-2 rounded-lg bg-white shadow-sm text-blue-600">Entrar</button>
+   <button type="button" id="tab-auth-cadastro" class="flex-1 py-2 rounded-lg text-slate-600">Criar conta</button>
+  </div>
+
+  <div id="login-erro" class="hidden p-3 rounded-xl text-xs bg-rose-100 text-rose-700"></div>
+
+  <form id="form-login" class="space-y-3">
+   <div>
+    <label class="block text-xs font-bold mb-1">Usuário</label>
+    <input id="login-username" required class="w-full bg-slate-50 border rounded-xl p-3" placeholder="ex.: jlima">
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Senha</label>
+    <input id="login-senha" type="password" required class="w-full bg-slate-50 border rounded-xl p-3" placeholder="Sua senha">
+   </div>
+   <button id="btn-login" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">
+    <i class="fa-solid fa-right-to-bracket mr-2"></i>Entrar
+   </button>
+  </form>
+
+  <form id="form-cadastro" class="space-y-3 hidden">
+   <div>
+    <label class="block text-xs font-bold mb-1">Nome Completo</label>
+    <input id="cad-nome" required class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" placeholder="Ex.: Jesse Lima da Silva">
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Apelido / Nome Curto</label>
+    <input id="cad-apelido" required class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" placeholder="Ex.: J. Lima">
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Nome de Usuário (Login)</label>
+    <input id="cad-username" required class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" placeholder="Ex.: jlima (sem espaços)">
+   </div>
+   <div class="grid grid-cols-2 gap-2">
+    <div>
+     <label class="block text-xs font-bold mb-1">Senha</label>
+     <input id="cad-senha" type="password" required minlength="6" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" placeholder="Mínimo 6 dígitos">
+    </div>
+    <div>
+     <label class="block text-xs font-bold mb-1">Confirmar Senha</label>
+     <input id="cad-senha2" type="password" required minlength="6" class="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" placeholder="Repita a senha">
+    </div>
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Categoria de Acesso</label>
+    <select id="cad-role-pretendido" class="w-full border bg-slate-50 rounded-xl p-2.5 text-xs font-bold">
+     <option value="prestador">Prestador Operacional</option>
+     <option value="gerente">Gerente (Requer aprovação do Administrador)</option>
+    </select>
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Funções Operacionais</label>
+    <div class="flex gap-4 text-xs mt-1">
+     <label class="flex items-center gap-1.5"><input type="checkbox" id="cad-motorista" checked> Motorista</label>
+     <label class="flex items-center gap-1.5"><input type="checkbox" id="cad-seguranca" checked> Segurança</label>
+    </div>
+   </div>
+   <button id="btn-cadastro" class="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition">
+    <i class="fa-solid fa-user-plus mr-2"></i>Finalizar Cadastro
+   </button>
+  </form>
+
+  <p class="text-[11px] text-slate-400 text-center border-t pt-3">Acesso protegido pelo Firebase Authentication</p>
+ </div>
+</div>
+
+<!-- MODAL DE ALTERAÇÃO DE SENHA -->
+<div id="modal-senha" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+ <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+  <div class="flex justify-between items-center border-b pb-2">
+   <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+    <i class="fa-solid fa-key text-blue-600"></i> Modificar Senha
+   </h3>
+   <button id="btn-fechar-modal-senha" type="button" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+  </div>
+  <form id="form-alterar-senha" class="space-y-3">
+   <div>
+    <label class="block text-xs font-bold mb-1">Nova Senha</label>
+    <input type="password" id="nova-senha" required minlength="6" placeholder="Mínimo 6 dígitos" class="w-full border bg-slate-50 rounded-xl p-2.5 text-xs">
+   </div>
+   <div>
+    <label class="block text-xs font-bold mb-1">Confirmar Nova Senha</label>
+    <input type="password" id="confirma-nova-senha" required minlength="6" placeholder="Repita a nova senha" class="w-full border bg-slate-50 rounded-xl p-2.5 text-xs">
+   </div>
+   <div class="flex gap-2 pt-2">
+    <button type="submit" id="btn-salvar-senha" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs">
+     Salvar Senha
+    </button>
+    <button type="button" id="btn-cancelar-modal-senha" class="px-4 py-2.5 border rounded-xl text-xs font-bold text-slate-600">
+     Cancelar
+    </button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<div id="app-container" class="hidden">
+ <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center gap-3">
+   <div class="flex items-center gap-3"><i class="fa-solid fa-route text-blue-400 text-xl"></i><div><h1 class="font-extrabold">SystemDiarias</h1><p class="text-[10px] text-slate-400">Controle operacional e financeiro</p></div></div>
+   <div class="flex items-center gap-3">
+    <div class="text-right"><b id="user-display-name" class="block text-xs"></b><span id="user-display-role" class="text-[10px] text-blue-300"></span></div>
+    <button id="btn-abrir-senha" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white" title="Modificar Senha"><i class="fa-solid fa-key"></i></button>
+    <button id="btn-logout" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white" title="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+   </div>
+  </div>
+ </header>
+ <nav class="max-w-6xl mx-auto px-4 pt-4 flex flex-wrap gap-2">
+  <button class="tab-btn tab-active border rounded-xl px-3 py-2 text-xs sm:text-sm font-bold" data-tab="lancamentos"><i class="fa-solid fa-circle-plus mr-1"></i>Lançamentos</button>
+  <button id="tab-validacao-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden relative" data-tab="validacao">
+   <i class="fa-solid fa-clipboard-check mr-1 text-emerald-600"></i>Validação
+   <span id="badge-validacao-count" class="hidden ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-rose-600 text-white font-extrabold">0</span>
+  </button>
+  <button id="tab-relatorios-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden" data-tab="relatorios">
+   <i class="fa-solid fa-file-invoice-dollar mr-1 text-blue-600"></i>Relatório de Pagamento
+  </button>
+  <button class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold" data-tab="fechamentos"><i class="fa-solid fa-wallet mr-1"></i>Extratos</button>
+  <button id="tab-cadastros-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden relative" data-tab="cadastros">
+   <i class="fa-solid fa-address-book mr-1"></i>Cadastros
+   <span id="badge-gerentes-pendentes" class="hidden ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-extrabold">0</span>
+  </button>
+  <button id="tab-antigos-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden" data-tab="antigos"><i class="fa-solid fa-box-archive mr-1"></i>Registros antigos</button>
+ </nav>
+
+ <main class="max-w-6xl mx-auto px-4 py-4 space-y-5">
+  <div id="toast" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+  <!-- ABA LANÇAMENTOS -->
+  <section id="aba-lancamentos" class="tab-pane space-y-5">
+   <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 flex flex-wrap gap-3 justify-between">
+    <b><i class="fa-solid fa-calculator text-blue-600 mr-1"></i> Parâmetros aplicados a novos serviços</b><span>Diária: <b id="top-cfg-diaria">R$ 190,00</b></span><span>Adicional acima de 5h30: <b id="top-cfg-adic">R$ 30,00</b></span><span>KM: <b id="top-cfg-km">R$ 0,68/km</b></span><span>Aluguel: <b id="top-cfg-aluguel">R$ 60,00</b></span>
+   </div>
+   <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
+    <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3 mb-4"><h2 class="font-extrabold"><i class="fa-solid fa-truck-moving text-blue-600 mr-2"></i>Novo registro de serviço</h2><span id="badge-ciclo" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">Informe a data</span></div>
+    <form id="form-rota" class="space-y-4"><input type="hidden" id="rota-edit-id"><div id="modo-edicao-rota" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"><b>Modo de edição de lançamento.</b> Ao salvar, os valores congelados deste serviço serão atualizados usando os parâmetros históricos salvos nele. <button type="button" id="btn-cancelar-edicao-rota" class="ml-2 underline font-bold">Cancelar edição</button></div>
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Data do serviço</label><input type="date" id="dataRota" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Hora inicial</label><input type="time" id="horaInicio" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Hora final</label><input type="time" id="horaFinal" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+     </div>
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Veículo</label><select id="veiculoSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select><p id="info-proprietario" class="text-[11px] text-slate-500 mt-1"></p></div>
+      <div><label class="block text-xs font-bold mb-1">KM total da rota</label><input type="number" step="0.1" min="0" id="kmTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Pedágios pagos (R$)</label><input type="number" step="0.01" min="0" id="pedagioTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+     </div>
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Motorista</label><select id="motoristaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
+      <div><label class="block text-xs font-bold mb-1">Segurança</label><select id="segurancaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
+     </div>
+     <div class="bg-slate-50 border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Duração</span><b id="calc-duracao" class="text-lg">0h 00m</b><p id="calc-adicional" class="text-[11px] text-slate-500">Sem adicional</p></div>
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento motorista</span><b id="calc-motorista" class="text-lg text-blue-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento segurança</span><b id="calc-seguranca" class="text-lg text-emerald-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
+     </div>
+     <div id="preview-veiculo" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"></div>
+     <div class="flex flex-col sm:flex-row gap-3"><button id="btn-submit-rota" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"><i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores</button><button id="btn-limpar" type="button" class="px-5 py-3 border rounded-xl font-semibold">Limpar</button></div>
+     <p class="text-[11px] text-slate-400">Novos serviços entram aguardando aprovação do Gerente/Admin antes do fechamento oficial.</p>
+    </form>
+   </div>
+   <div class="bg-white rounded-2xl border p-4 shadow-sm">
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold"><i class="fa-solid fa-list mr-2 text-slate-500"></i>Histórico de serviços</h2><span id="contador-rotas" class="text-xs bg-slate-100 rounded-full px-3 py-1">0</span></div>
+    <div class="overflow-x-auto"><table class="w-full text-xs text-left min-w-[850px]"><thead class="text-slate-500 uppercase border-b"><tr><th class="p-3">Data</th><th class="p-3">Equipe</th><th class="p-3">Veículo</th><th class="p-3">Proprietário</th><th class="p-3 text-right">Total do serviço</th><th class="p-3">Status</th><th class="p-3">Ação</th></tr></thead><tbody id="tabela-rotas" class="divide-y"></tbody></table></div>
+   </div>
+  </section>
+
+  <!-- ABA RELATÓRIO DE PAGAMENTO (PADRONIZADO NOMINAL) -->
+  <section id="aba-relatorios" class="tab-pane hidden space-y-4">
+   <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm no-print">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4 mb-4">
+     <div>
+      <h2 class="font-black text-lg text-slate-800 flex items-center gap-2">
+       <i class="fa-solid fa-file-invoice-dollar text-blue-600"></i> Relatório de Pagamentos
+      </h2>
+      <p class="text-xs text-slate-500">Demonstrativo nominal de serviços validados por prestador.</p>
+     </div>
+     <button id="btn-imprimir-relatorio" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow transition">
+      <i class="fa-solid fa-print"></i> Imprimir Pagamentos
+     </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+     <div>
+      <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data / Ciclo de Pagamento</label>
+      <select id="rel-filtro-ciclo" class="w-full border bg-slate-50 rounded-xl p-2.5 text-xs font-bold"></select>
+     </div>
+     <div>
+      <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Prestador / Operador</label>
+      <select id="rel-filtro-prestador" class="w-full border bg-slate-50 rounded-xl p-2.5 text-xs font-bold"></select>
+     </div>
+    </div>
+   </div>
+
+   <!-- CONTEÚDO FORMATADO DO RELATÓRIO -->
+   <div id="relatorio-conteudo" class="space-y-6"></div>
+  </section>
+
+  <!-- ABA VALIDAÇÃO (GERENTE / ADMIN) -->
+  <section id="aba-validacao" class="tab-pane hidden space-y-4">
+   <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div>
+     <h2 class="font-black text-base flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-600"></i> Validação e Auditoria de Serviços</h2>
+     <p class="text-xs text-emerald-800 mt-0.5">Analise cada rota lançada e defina se está <b>Correta (Validada)</b>, necessita <b>Corrigir (Editar)</b> ou deve ser <b>Recusada</b>.</p>
+    </div>
+    <div class="flex items-center gap-2">
+     <button id="btn-filtro-val-pendentes" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm">Apenas Pendentes</button>
+     <button id="btn-filtro-val-todos" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border">Ver Todos</button>
+    </div>
+   </div>
+
+   <div class="bg-white rounded-2xl border p-4 shadow-sm">
+    <div class="overflow-x-auto">
+     <table class="w-full text-xs text-left min-w-[950px]">
+      <thead class="bg-slate-50 uppercase text-slate-500 border-b">
+       <tr>
+        <th class="p-3">Data / Equipe</th>
+        <th class="p-3">Veículo / KM</th>
+        <th class="p-3 text-right">Valor Total</th>
+        <th class="p-3 text-center">Status Atual</th>
+        <th class="p-3" style="min-width: 200px;">Observação do Gerente (Obs.)</th>
+        <th class="p-3 text-center">Ações de Validação</th>
+       </tr>
+      </thead>
+      <tbody id="tabela-validacao" class="divide-y"></tbody>
+     </table>
+    </div>
+   </div>
+  </section>
+
+  <!-- ABA EXTRATOS -->
+  <section id="aba-fechamentos" class="tab-pane hidden space-y-4">
+   <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
+    <div class="flex flex-col sm:flex-row justify-between gap-3 border-b pb-4 mb-4"><div><h2 class="font-extrabold text-lg">Extratos de pagamento</h2><p class="text-xs text-slate-500">Demonstrativo contábil de receitas, reembolsos e saldo final.</p></div><div class="flex flex-wrap gap-2"><div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ciclo de pagamento</label><select id="filtro-ciclo" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div><div id="wrapper-filtro-pessoa" class="hidden"><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Destinatário</label><select id="filtro-pessoa" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div></div></div>
+    <div id="box-extrato" class="space-y-4"></div>
+   </div>
+  </section>
+
+  <!-- ABA CADASTROS -->
+  <section id="aba-cadastros" class="tab-pane hidden space-y-5">
+   <div id="bloco-solicitacoes-gerente" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm hidden space-y-3">
+    <div class="flex justify-between items-center">
+     <h3 class="font-black text-amber-950 flex items-center gap-2">
+      <i class="fa-solid fa-user-shield text-amber-600"></i> Solicitações de Cargo Gerente Pendentes
+     </h3>
+     <span id="badge-total-solicitacoes" class="text-xs bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">0 pendente(s)</span>
+    </div>
+    <p class="text-xs text-amber-900">Estes prestadores criaram a conta solicitando perfil de Gerente e aguardam autorização:</p>
+    <div id="lista-solicitacoes-gerente" class="divide-y border bg-white rounded-xl text-xs"></div>
+   </div>
+
+   <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900"><b>Cadastros independentes.</b> Cada prestador tem um código único, perfil de acesso (Prestador, Gerente ou Admin) e funções atribuídas.</div>
+   <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Prestadores e Usuários</h3>
+     <form id="form-prestador" class="space-y-2"><input type="hidden" id="p-edit-id">
+      <input id="p-nome" required placeholder="Nome completo" class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><input id="p-apelido" required placeholder="Apelido para exibição" class="border bg-slate-50 rounded-lg p-2.5 text-sm"><input id="p-usuario" placeholder="Usuário de login (opcional)" class="border bg-slate-50 rounded-lg p-2.5 text-sm"></div>
+      <div>
+       <label class="block text-xs font-bold mb-1">Perfil de Acesso</label>
+       <select id="p-role" class="w-full border bg-slate-50 rounded-lg p-2.5 text-xs font-bold">
+        <option value="prestador">Prestador Operacional</option>
+        <option value="gerente">Gerente (Acesso a Validações)</option>
+        <option value="admin">Administrador (Total)</option>
+       </select>
+      </div>
+      <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="p-motorista"> Motorista</label><label class="flex items-center gap-2"><input type="checkbox" id="p-seguranca"> Segurança</label></div>
+      <div class="flex gap-2"><button id="btn-salvar-prestador" class="flex-1 bg-blue-600 text-white font-bold rounded-lg p-2.5 text-sm">Cadastrar prestador</button><button id="btn-cancelar-prestador" type="button" class="hidden border rounded-lg px-3 text-sm font-bold">Cancelar</button></div>
+     </form><div id="lista-prestadores" class="divide-y text-xs"></div>
+    </div>
+    <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Veículos e proprietários</h3>
+     <form id="form-veiculo" class="space-y-2"><input type="hidden" id="v-edit-id"><input id="v-placa" required placeholder="Placa" class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm uppercase"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><input id="v-marca" placeholder="Marca" class="border bg-slate-50 rounded-lg p-2.5 text-sm"><input id="v-modelo" required placeholder="Modelo" class="border bg-slate-50 rounded-lg p-2.5 text-sm"></div><label class="block text-xs font-bold">Proprietário cadastrado</label><select id="v-proprietario" required class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm"></select><div class="flex gap-2"><button id="btn-salvar-veiculo" class="flex-1 bg-indigo-600 text-white font-bold rounded-lg p-2.5 text-sm">Cadastrar veículo</button><button id="btn-cancelar-veiculo" type="button" class="hidden border rounded-lg px-3 text-sm font-bold">Cancelar</button></div></form><div id="lista-veiculos" class="divide-y text-xs"></div>
+    </div>
+   </div>
+   <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Parâmetros para novos lançamentos</h3><p class="text-xs text-slate-500">Alterar aqui só afeta novos serviços. Os valores salvos nos registros anteriores permanecem intactos.</p>
+    <form id="form-parametros" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div><label class="text-xs font-bold">Diária (R$)</label><input id="cfg-diaria" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Adicional (R$)</label><input id="cfg-adic" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Valor por KM (R$)</label><input id="cfg-km" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Aluguel (R$)</label><input id="cfg-aluguel" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><button class="col-span-2 sm:col-span-4 bg-slate-900 text-white font-bold rounded-lg p-2.5">Salvar parâmetros para novos serviços</button></form>
+   </div>
+  </section>
+
+  <!-- ABA ANTIGOS -->
+  <section id="aba-antigos" class="tab-pane hidden space-y-4">
+   <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-950"><h2 class="font-extrabold mb-1"><i class="fa-solid fa-shield-halved mr-2"></i>Preservação dos registros antigos</h2><p>Registros do padrão anterior são mantidos na coleção <code>rotas</code>. Esta tela identifica registros sem a nova estrutura.</p></div>
+   <div class="bg-white border rounded-2xl p-4"><div class="flex flex-wrap items-center justify-between gap-2"><h3 class="font-bold">Registros anteriores à nova versão</h3><div class="flex flex-wrap gap-2"><button id="btn-exportar-antigos" class="bg-slate-900 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-download mr-1"></i>Exportar backup JSON</button><button id="btn-migrar-prestadores" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Vincular P0004/P0005 aos cadastros oficiais</button></div></div>
+   <div id="editor-lancamento-antigo" class="hidden mt-4 border-2 border-indigo-200 bg-indigo-50/50 rounded-xl p-4">
+    <div class="flex items-start justify-between gap-3 mb-3"><div><h3 class="font-extrabold text-indigo-950">Editar e padronizar lançamento</h3></div><button type="button" id="btn-cancelar-edicao-antiga" class="border bg-white rounded-lg px-3 py-2 text-xs font-bold">Cancelar</button></div>
+    <form id="form-editar-antigo" class="space-y-4"><input type="hidden" id="antigo-id">
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div><label class="block text-xs font-bold mb-1">Data do serviço</label><input id="antigo-data" type="date" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Hora inicial</label><input id="antigo-inicio" type="time" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Hora final</label><input id="antigo-final" type="time" required class="w-full border rounded-lg p-2.5 bg-white"></div></div>
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Motorista</label><select id="antigo-motorista" required class="w-full border rounded-lg p-2.5 bg-white"></select></div><div><label class="block text-xs font-bold mb-1">Segurança</label><select id="antigo-seguranca" required class="w-full border rounded-lg p-2.5 bg-white"></select></div><div><label class="block text-xs font-bold mb-1">Veículo / placa</label><select id="antigo-veiculo" required class="w-full border rounded-lg p-2.5 bg-white"></select><p id="antigo-owner-info" class="text-[11px] text-slate-500 mt-1"></p></div><div class="grid grid-cols-2 gap-2"><div><label class="block text-xs font-bold mb-1">KM total</label><input id="antigo-km" type="number" min="0" step="0.1" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Pedágios (R$)</label><input id="antigo-pedagio" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5 bg-white"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do motorista</h4><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Diária (R$)</label><input id="antigo-mot-diaria" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Adicional (R$)</label><input id="antigo-mot-adic" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do segurança</h4><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Diária (R$)</label><input id="antigo-seg-diaria" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Adicional (R$)</label><input id="antigo-seg-adic" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do proprietário do veículo</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div><label class="block text-xs font-bold mb-1">Aluguel (R$)</label><input id="antigo-aluguel" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Reembolso KM (R$)</label><input id="antigo-km-valor" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Reembolso pedágio (R$)</label><input id="antigo-pedagio-valor" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div></div>
+     <div class="flex flex-col sm:flex-row gap-2"><button id="btn-salvar-antigo" class="flex-1 bg-indigo-600 text-white font-extrabold rounded-lg p-3"><i class="fa-solid fa-check mr-2"></i>Salvar e padronizar lançamento</button><button type="button" id="btn-cancelar-edicao-antiga-2" class="border bg-white rounded-lg px-4 py-3 font-bold">Cancelar</button></div>
+    </form>
+   </div><div id="lista-antigos" class="mt-3 space-y-2"></div></div>
+  </section>
+ </main>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,updatePassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,addDoc,getDocs,deleteDoc,doc,setDoc,updateDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const DOMINIO="@systemdiarias.com";
+const firebaseConfig = {
+  apiKey: "AIzaSyB9YlhudAAQJo7VP_lDhZFSSPzJMtM-ne4",
+  authDomain: "followup-213dc.firebaseapp.com",
+  projectId: "followup-213dc",
+  storageBucket: "followup-213dc.firebasestorage.app",
+  messagingSenderId: "656332364161",
+  appId: "1:656332364161:web:92a5484f727f2adffc3080"
+};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+
+const MAPA_USUARIOS={
+ adm:{nome:"Administrador",apelido:"Administrador",role:"admin"},
+ jlima:{nome:"Jesse Lima da Silva",apelido:"J. Lima",role:"prestador",legacyTipo:"motorista/seguranca"},
+ acaetano:{nome:"Anderson Caetano de Souza",apelido:"Anderson",role:"prestador",legacyTipo:"motorista/seguranca"},
+ akaique:{nome:"Andre Kaique Cloraso",apelido:"Kaique",role:"prestador",legacyTipo:"motorista/seguranca"}
+};
+const PARAM_DEFAULT={diaria:190,adicional:30,km:0.68,aluguel:60};
+let usuarioLogado=null,rotas=[],prestadores=[],veiculos=[],parametros={...PARAM_DEFAULT},busy=false;
+let filtroValidacaoPendentes=true;
+
+const $=id=>document.getElementById(id);
+const n=v=>{const x=Number(v);return Number.isFinite(x)?x:0};
+const brl=v=>{
+ const x=n(v);
+ if(x<0)return `- ${Math.abs(x).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}`;
+ return x.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=prefix=>prefix+"_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2,8));
+
+function toast(msg,ok=true){
+ $("toast").className=`p-3 rounded-xl text-xs font-semibold ${ok?"bg-emerald-600 text-white":"bg-rose-600 text-white"}`;
+ $("toast").textContent=msg;
+ setTimeout(()=>$("toast").classList.add("hidden"),5000);
+}
+function username(v){return (v||"").toLowerCase().trim().split("@")[0].trim()}
+function getPrestador(id){return prestadores.find(p=>p.id===id)}
+function getVeiculo(id){return veiculos.find(v=>v.id===id)}
+function getVeiculoByPlaca(placa){
+ if(!placa)return null;
+ const clean=String(placa).toUpperCase().replace(/[^A-Z0-9]/g,"");
+ return veiculos.find(v=>String(v.placa).toUpperCase().replace(/[^A-Z0-9]/g,"")===clean);
+}
+
+function ciclo(data){
+ if(!data)return {id:"",label:""};
+ const [y,m,d]=data.split("-").map(Number);
+ if(d<=15)return {id:`${y}-${String(m).padStart(2,"0")}-25`,label:`25/${String(m).padStart(2,"0")}/${y}`};
+ const dt=new Date(y,m,10);
+ return {id:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-10`,label:`10/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`};
+}
+
+function minutos(){
+ const a=$("horaInicio").value,b=$("horaFinal").value;
+ if(!a||!b)return 0;
+ const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number);
+ let x=h1*60+m1,y=h2*60+m2;
+ if(y<x)y+=1440;
+ return y-x;
+}
+function duration(m){return `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m`}
+
+function newCalc(){
+ const mins=minutos(),extra=mins>330?parametros.adicional:0,km=n($("kmTotal").value),toll=n($("pedagioTotal").value);
+ const mot=parametros.diaria+extra,seg=parametros.diaria+extra;
+ const v=getVeiculo($("veiculoSelect").value);
+ $("calc-duracao").textContent=duration(mins);
+ $("calc-adicional").textContent=extra?`Adicional de ${brl(extra)} aplicado`:"Sem adicional (até 5h30)";
+ $("calc-motorista").textContent=brl(mot);
+ $("calc-seguranca").textContent=brl(seg);
+ const dt=$("dataRota").value;
+ if(dt)$("badge-ciclo").textContent="Pagamento previsto: "+ciclo(dt).label;
+ const owner=getPrestador(v?.proprietarioId);
+ $("info-proprietario").textContent=owner?`Proprietário: ${owner.apelido} • código ${owner.codigo}`:"Selecione veículo com proprietário";
+ $("preview-veiculo").innerHTML=v?`<b>Valores do veículo para este serviço:</b> aluguel ${brl(parametros.aluguel)} + KM ${brl(km*parametros.km)} (${km.toFixed(1)} km) + pedágios ${brl(toll)} → <b>${brl(parametros.aluguel+km*parametros.km+toll)}</b> destinados a ${esc(owner?.nome||"proprietário não identificado")}. <span class="block mt-1">Estes valores serão congelados ao gravar o serviço.</span>`:"Selecione um veículo para visualizar o destinatário dos valores do veículo.";
+ return {mins,extra,km,toll,mot,seg,v,owner};
+}
+
+function populateSelects(){
+ const mot=prestadores.filter(p=>p.funcoes?.includes("motorista")),seg=prestadores.filter(p=>p.funcoes?.includes("seguranca"));
+ $("motoristaSelect").innerHTML=mot.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
+ $("segurancaSelect").innerHTML=seg.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
+ $("veiculoSelect").innerHTML=veiculos.map(v=>`<option value="${esc(v.id)}">${esc(v.placa)} — ${esc(v.modelo)}</option>`).join("");
+ $("v-proprietario").innerHTML=prestadores.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)} (${esc(p.codigo)} — ${esc(p.apelido)})</option>`).join("");
+ renderCadastros();newCalc();
+}
+
+function renderCadastros(){
+ $("lista-prestadores").innerHTML=prestadores.map(p=>{
+  const roleLabel=p.role==="admin"?"ADMINISTRADOR":p.role==="gerente"?"GERENTE":"PRESTADOR";
+  return `<div class="py-2 flex justify-between gap-3">
+   <div>
+    <b>${esc(p.codigo)} — ${esc(p.nome)}</b> <span class="text-[10px] px-2 py-0.5 rounded font-bold ${p.role==='gerente'?'bg-emerald-100 text-emerald-800':p.role==='admin'?'bg-slate-900 text-white':'bg-blue-100 text-blue-800'}">${roleLabel}</span>
+    <div class="text-slate-500">${esc(p.apelido)} • ${esc((p.funcoes||[]).map(x=>x==="motorista"?"Motorista":"Segurança").join(" + "))}${p.usuario?` • login: ${esc(p.usuario)}`:""}</div>
+   </div>
+   <div class="flex items-center gap-3 shrink-0">
+    <button class="text-blue-600 font-bold" data-edit-p="${esc(p.id)}" title="Editar prestador"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+    <button class="text-rose-600" data-del-p="${esc(p.id)}" title="Excluir cadastro"><i class="fa-solid fa-trash"></i></button>
+   </div>
+  </div>`;
+ }).join("")||`<p class="py-3 text-slate-400">Nenhum prestador cadastrado.</p>`;
+
+ $("lista-veiculos").innerHTML=veiculos.map(v=>{
+  const p=getPrestador(v.proprietarioId);
+  return `<div class="py-2 flex justify-between gap-3"><div><b>${esc(v.placa)} — ${esc(v.modelo)}</b><div class="text-slate-500">${esc(v.marca||"")} • Proprietário: ${esc(p?.nome||v.proprietarioNome||"Não identificado")}</div></div><div class="flex items-center gap-3 shrink-0"><button class="text-blue-600 font-bold" data-edit-v="${esc(v.id)}" title="Editar veículo"><i class="fa-solid fa-pen-to-square"></i> Editar</button><button class="text-rose-600" data-del-v="${esc(v.id)}" title="Excluir cadastro"><i class="fa-solid fa-trash"></i></button></div></div>`;
+ }).join("")||`<p class="py-3 text-slate-400">Nenhum veículo cadastrado.</p>`;
+
+ renderSolicitacoesGerente();
+}
+
+function renderSolicitacoesGerente(){
+ if(!isAdmin()){
+  $("bloco-solicitacoes-gerente").classList.add("hidden");
+  $("badge-gerentes-pendentes").classList.add("hidden");
+  return;
+ }
+ const pendentes = prestadores.filter(p => p.solicitacaoGerente === "pendente");
+ const badgeNav = $("badge-gerentes-pendentes");
+ const badgeBlock = $("badge-total-solicitacoes");
+
+ if(pendentes.length > 0){
+  badgeNav.textContent = pendentes.length;
+  badgeNav.classList.remove("hidden");
+  badgeBlock.textContent = `${pendentes.length} pendente(s)`;
+  $("bloco-solicitacoes-gerente").classList.remove("hidden");
+  $("lista-solicitacoes-gerente").innerHTML = pendentes.map(p => `
+   <div class="p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+    <div>
+     <b class="text-slate-800 text-sm">${esc(p.nome)}</b> <span class="text-slate-500 font-mono">(${esc(p.usuario)})</span>
+     <div class="text-slate-500 text-[11px]">Código: ${esc(p.codigo)} • Solicitado em: ${esc(fmtDate((p.solicitadoEm||p.createdAt||"").split("T")[0]))}</div>
+    </div>
+    <div class="flex items-center gap-2">
+     <button type="button" data-aprovar-gerente="${esc(p.id)}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm">
+      <i class="fa-solid fa-check mr-1"></i>Aprovar Gerente
+     </button>
+     <button type="button" data-recusar-gerente="${esc(p.id)}" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs shadow-sm">
+      <i class="fa-solid fa-xmark mr-1"></i>Recusar
+     </button>
+    </div>
+   </div>
+  `).join("");
+ } else {
+  badgeNav.classList.add("hidden");
+  $("bloco-solicitacoes-gerente").classList.add("hidden");
+  $("lista-solicitacoes-gerente").innerHTML = "";
+ }
+}
+
+async function loadCollection(name){const snap=await getDocs(collection(db,name));return snap.docs.map(d=>({id:d.id,...d.data()}))}
+
+async function loadAll(){
+ try{
+  const [r,p,v,c]=await Promise.all([loadCollection("rotas"),loadCollection("prestadores"),loadCollection("veiculos"),loadCollection("systemConfig")]);
+  rotas=r;
+  if(p.length)prestadores=p.filter(x=>!x.mergedInto);else {prestadores=defaultPrestadores();for(const x of prestadores)await setDoc(doc(db,"prestadores",x.id),x)}
+  if(v.length)veiculos=v;else {veiculos=defaultVeiculos();for(const x of veiculos)await setDoc(doc(db,"veiculos",x.id),x)}
+  const cfg=c.find(x=>x.id==="parametros");if(cfg)parametros={diaria:n(cfg.diaria),adicional:n(cfg.adicional),km:n(cfg.km),aluguel:n(cfg.aluguel)};
+  setCfgInputs();populateSelects();renderRoutes();renderValidacao();populateCycle();renderExtract();renderRelatorioPagamentos();renderLegacy();
+ }catch(e){console.error(e);toast("Não foi possível carregar dados do Firebase: "+e.message,false)}
+}
+
+function defaultPrestadores(){
+ return [
+  {id:"p_jlima",codigo:"P0001",nome:"Jesse Lima da Silva",apelido:"J. Lima",usuario:"jlima",role:"prestador",funcoes:["motorista","seguranca"]},
+  {id:"p_acaetano",codigo:"P0002",nome:"Anderson Caetano de Souza",apelido:"Anderson",usuario:"acaetano",role:"prestador",funcoes:["motorista","seguranca"]},
+  {id:"p_akaique",codigo:"P0003",nome:"Andre Kaique Cloraso",apelido:"Kaique",usuario:"akaique",role:"prestador",funcoes:["motorista","seguranca"]}
+ ];
+}
+function defaultVeiculos(){return []}
+
+function isAdmin(){return usuarioLogado?.role==="admin"}
+function isGerente(){return usuarioLogado?.role==="gerente"||usuarioLogado?.role==="admin"}
+
+function badgeStatus(st){
+ const status=st||"pendente_validacao";
+ if(status==="validado")return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-check mr-1"></i>VALIDADO</span>';
+ if(status==="pendente_correcao")return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300"><i class="fa-solid fa-pen mr-1"></i>CORRIGIR</span>';
+ if(status==="recusado")return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300"><i class="fa-solid fa-ban mr-1"></i>RECUSADO</span>';
+ return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300"><i class="fa-solid fa-clock mr-1"></i>PENDENTE</span>';
+}
+
+function visibleRoutes(){
+ if(isGerente())return rotas;
+ const p=prestadores.find(x=>x.usuario===usuarioLogado.username);
+ return rotas.filter(r=>r.motoristaId===p?.id||r.segurancaId===p?.id||r.pagamentos?.some(x=>x.prestadorId===p?.id)||r.motorista===usuarioLogado.apelido||r.seguranca===usuarioLogado.apelido);
+}
+
+function routeTotal(r){if(r.versaoSchema===2)return n(r.totalRota);return n(r.subMotorista)+n(r.subSeguranca)}
+
+function renderRoutes(){
+ const rows=visibleRoutes().sort((a,b)=>(b.data||"").localeCompare(a.data||""));
+ $("contador-rotas").textContent=`${rows.length} serviços`;
+ $("tabela-rotas").innerHTML=rows.map(r=>{
+  const old=r.versaoSchema!==2;
+  const owner=old?(r.proprietarioVeiculoNome||"Pendente/antigo"):(r.proprietarioNomeSnapshot||"—");
+  const total=routeTotal(r);
+  return `<tr>
+   <td class="p-3"><div class="font-semibold">${esc(fmtDate(r.data))}</div>${(isAdmin()||isGerente())?`<button type="button" class="mt-2 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-white font-bold whitespace-nowrap text-[11px]" ${old?`data-edit-legacy="${esc(r.id)}"`:`data-edit-r="${esc(r.id)}"`}><i class="fa-solid fa-pen-to-square"></i> Editar</button>`:""}</td>
+   <td class="p-3">${esc(r.motoristaNomeSnapshot||r.motorista||"—")}<br><span class="text-slate-500">Seg.: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</span></td>
+   <td class="p-3">${esc(r.placa||"—")}<br>${esc(r.modeloVeiculoSnapshot||"")}</td>
+   <td class="p-3">${esc(owner)}</td>
+   <td class="p-3 text-right font-bold">${old&&!(r.subMotorista||r.subSeguranca)?`<span class="text-amber-700">Pendente</span>`:brl(total)}</td>
+   <td class="p-3">${badgeStatus(r.status)}${r.obsValidacao?`<div class="text-[10px] text-slate-500 mt-1 italic">Obs: ${esc(r.obsValidacao)}</div>`:""}</td>
+   <td class="p-3">${isAdmin()?`<button class="text-rose-600 hover:text-rose-800" data-del-r="${esc(r.id)}" title="Excluir rota"><i class="fa-solid fa-trash"></i></button>`:"—"}</td>
+  </tr>`;
+ }).join("")||`<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum serviço encontrado.</td></tr>`;
+}
+
+function renderValidacao(){
+ const pendentesCount=rotas.filter(r=>!r.status||r.status==="pendente_validacao"||r.status==="pendente_correcao").length;
+ const badgeEl=$("badge-validacao-count");
+ if(pendentesCount>0){
+  badgeEl.textContent=pendentesCount;
+  badgeEl.classList.remove("hidden");
+ }else{
+  badgeEl.classList.add("hidden");
+ }
+
+ const filtradas = rotas.filter(r=>{
+  if(!filtroValidacaoPendentes) return true;
+  return !r.status || r.status==="pendente_validacao" || r.status==="pendente_correcao";
+ }).sort((a,b)=>(b.data||"").localeCompare(a.data||""));
+
+ $("tabela-validacao").innerHTML=filtradas.map(r=>{
+  const owner=r.proprietarioNomeSnapshot||r.proprietarioVeiculoNome||"—";
+  const total=routeTotal(r);
+  return `<tr id="val-row-${esc(r.id)}" class="hover:bg-slate-50">
+   <td class="p-3 font-semibold">
+    <div class="text-slate-900 font-bold">${esc(fmtDate(r.data))}</div>
+    <div class="text-slate-500 text-[11px]">Mot: ${esc(r.motoristaNomeSnapshot||r.motorista||"—")}</div>
+    <div class="text-slate-500 text-[11px]">Seg: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</div>
+   </td>
+   <td class="p-3">
+    <span class="font-mono font-bold">${esc(r.placa||"—")}</span> <span class="text-slate-500">(${n(r.km).toFixed(1)} km)</span>
+    <div class="text-[11px] text-slate-500">Prop.: ${esc(owner)}</div>
+   </td>
+   <td class="p-3 text-right font-black text-slate-800">${brl(total)}</td>
+   <td class="p-3 text-center">${badgeStatus(r.status)}</td>
+   <td class="p-3">
+    <input type="text" id="obs-val-${esc(r.id)}" value="${esc(r.obsValidacao||"")}" placeholder="Digite uma observação..." class="w-full border rounded-lg p-2 text-xs bg-slate-50 focus:bg-white">
+   </td>
+   <td class="p-3 text-center whitespace-nowrap">
+    <div class="inline-flex gap-1.5">
+     <button type="button" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs" data-action-val="correto" data-id="${esc(r.id)}" title="Marcar como Correto (Validado)">
+      <i class="fa-solid fa-check mr-1"></i>Correto
+     </button>
+     <button type="button" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs" data-action-val="corrigir" data-id="${esc(r.id)}" title="Solicitar Correção e Editar">
+      <i class="fa-solid fa-pen mr-1"></i>Corrigir
+     </button>
+     <button type="button" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs" data-action-val="recusar" data-id="${esc(r.id)}" title="Recusar Serviço">
+      <i class="fa-solid fa-ban mr-1"></i>Recusar
+     </button>
+    </div>
+   </td>
+  </tr>`;
+ }).join("")||`<tr><td colspan="6" class="p-8 text-center text-slate-400 font-semibold">Nenhum serviço pendente de validação no momento.</td></tr>`;
+}
+
+document.addEventListener("click",async e=>{
+ const btnVal=e.target.closest("[data-action-val]");
+ if(btnVal && isGerente()){
+  const action=btnVal.dataset.actionVal;
+  const id=btnVal.dataset.id;
+  const rota=rotas.find(x=>x.id===id);
+  if(!rota)return;
+
+  const obsEl=$(`obs-val-${id}`);
+  const obs=obsEl?obsEl.value.trim():"";
+
+  let novoStatus="";
+  if(action==="correto") novoStatus="validado";
+  if(action==="corrigir") novoStatus="pendente_correcao";
+  if(action==="recusar") novoStatus="recusado";
+
+  try{
+   await updateDoc(doc(db,"rotas",id),{
+    status:novoStatus,
+    obsValidacao:obs,
+    validadoPor:usuarioLogado.username,
+    validadoEm:new Date().toISOString()
+   });
+   rota.status=novoStatus;
+   rota.obsValidacao=obs;
+
+   renderValidacao();
+   renderRoutes();
+   renderExtract();
+   renderRelatorioPagamentos();
+
+   if(action==="corrigir"){
+    toast("Serviço marcado para correção. Abrindo modo de edição...");
+    document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("tab-active"));
+    $("tab-cadastros-btn").classList.remove("tab-active");
+    document.querySelector('[data-tab="lancamentos"]').classList.add("tab-active");
+    document.querySelectorAll(".tab-pane").forEach(x=>x.classList.add("hidden"));
+    $("aba-lancamentos").classList.remove("hidden");
+    editRoute(id);
+   }else if(action==="correto"){
+    toast("Serviço validado com sucesso!");
+   }else{
+    toast("Serviço recusado.",false);
+   }
+  }catch(err){
+   console.error(err);
+   toast("Erro ao atualizar validação: "+err.message,false);
+  }
+ }
+});
+
+$("btn-filtro-val-pendentes").addEventListener("click",()=>{
+ filtroValidacaoPendentes=true;
+ $("btn-filtro-val-pendentes").className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm";
+ $("btn-filtro-val-todos").className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border";
+ renderValidacao();
+});
+$("btn-filtro-val-todos").addEventListener("click",()=>{
+ filtroValidacaoPendentes=false;
+ $("btn-filtro-val-todos").className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm";
+ $("btn-filtro-val-pendentes").className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border";
+ renderValidacao();
+});
+
+function fmtDate(d){if(!d)return "—";const a=d.split("-");return a.length===3?`${a[2]}/${a[1]}/${a[0]}`:d}
+
+function paymentsForRoute(r){
+ if(r.versaoSchema===2)return r.pagamentos||[];
+ const out=[];
+ if(r.motorista){
+  const daily=n(r.valDiaria),adic=n(r.valAdic),rent=n(r.valAluguel),km=n(r.valKm),toll=n(r.pedagio);
+  const total=n(r.subMotorista);
+  if(r.subMotorista!==undefined||r.valDiaria!==undefined)out.push({prestadorId:r.motoristaId||"legacy-mot-"+r.motorista,prestadorNome:r.motoristaNomeSnapshot||r.motorista,codigo:r.motoristaCodigo||"ANTIGO",apelido:r.motorista,tipo:"motorista",diaria:daily,adicional:adic,aluguel:rent,km:km,pedagio:toll,liquido:daily+adic+rent,reembolso:km+toll,total:total||daily+adic+rent+km+toll,legacy:true});
+ }
+ if(r.seguranca){
+  const daily=n(r.valDiaria),adic=n(r.valAdic),total=n(r.subSeguranca);
+  if(r.subSeguranca!==undefined||r.valDiaria!==undefined)out.push({prestadorId:r.segurancaId||"legacy-seg-"+r.seguranca,prestadorNome:r.segurancaNomeSnapshot||r.seguranca,codigo:r.segurancaCodigo||"ANTIGO",apelido:r.seguranca,tipo:"seguranca",diaria:daily,adicional:adic,aluguel:0,km:0,pedagio:0,liquido:daily+adic,reembolso:0,total:total||daily+adic,legacy:true});
+ }
+ return out;
+}
+
+function allRecipients(){
+ const list=[];
+ for(const p of prestadores)list.push({key:"p:"+p.id,id:p.id,nome:p.nome,apelido:p.apelido,codigo:p.codigo,tipo:"prestador"});
+ for(const r of rotas.filter(x=>x.versaoSchema!==2)){
+  for(const [role,name] of [["motorista",r.motorista],["seguranca",r.seguranca]])if(name&&!list.some(x=>x.apelido===name&&x.tipo===role))list.push({key:`legacy:${role}:${name}`,id:`legacy-${role}-${name}`,nome:name,apelido:name,codigo:"ANTIGO",tipo:role,legacy:true});
+ }
+ return list;
+}
+
+function populateCycle(){
+ const selected=$("filtro-ciclo").value;
+ const relSelected=$("rel-filtro-ciclo").value;
+ const mapCycles=new Map();
+ rotas.filter(r=>r.dataPagamento||r.cicloId).forEach(r=>{
+  const id=r.cicloId||r.dataPagamento;
+  mapCycles.set(id,{id,label:r.dataPagamento||r.cicloId});
+ });
+ const labels=[...mapCycles.values()].sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+ const optsHtml=labels.map(x=>`<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("")||'<option value="">Sem lançamentos</option>';
+
+ $("filtro-ciclo").innerHTML=optsHtml;
+ if(labels.some(x=>x.id===selected))$("filtro-ciclo").value=selected;
+
+ $("rel-filtro-ciclo").innerHTML=optsHtml;
+ if(labels.some(x=>x.id===relSelected))$("rel-filtro-ciclo").value=relSelected;
+
+ if(isGerente()){
+  const prev=$("filtro-pessoa").value;
+  const ppl=allRecipients();
+  const pplOpts=ppl.map(p=>`<option value="${esc(p.key)}">${esc(p.apelido)} — ${esc(p.codigo)}${p.tipo==="motorista"?" (Motorista)":p.tipo==="seguranca"?" (Segurança)":" (Prestador)"}</option>`).join("");
+  $("filtro-pessoa").innerHTML=pplOpts;
+  if(ppl.some(p=>p.key===prev))$("filtro-pessoa").value=prev;
+
+  const relPrev=$("rel-filtro-prestador").value;
+  $("rel-filtro-prestador").innerHTML='<option value="TODOS">Todos os Prestadores (Geral)</option>'+pplOpts;
+  if(relPrev && (relPrev==="TODOS"||ppl.some(p=>p.key===relPrev)))$("rel-filtro-prestador").value=relPrev;
+ }else{
+  const p=prestadores.find(x=>x.usuario===usuarioLogado.username);
+  $("filtro-pessoa").innerHTML=p?`<option value="p:${esc(p.id)}">${esc(p.apelido)}</option>`:"";
+ }
+}
+
+// =========================================================================
+// RENDERIZAÇÃO DO RELATÓRIO DE PAGAMENTO (PADRONIZADO NOMINAL)
+// REGRA: Nome do Prestador -> Relação de Serviços -> Total por Prestador -> Total Geral
+// =========================================================================
+function renderRelatorioPagamentos(){
+ if(!isGerente()) return;
+ const box = $("relatorio-conteudo");
+ const cicloSelecionado = $("rel-filtro-ciclo").value;
+ const prestadorFiltro = $("rel-filtro-prestador").value || "TODOS";
+
+ if(!cicloSelecionado){
+  box.innerHTML = '<p class="text-sm text-slate-400 text-center p-8 bg-white rounded-2xl border">Selecione uma data/ciclo de pagamento com lançamentos.</p>';
+  return;
+ }
+
+ const allPpl = allRecipients();
+ const gruposPorPrestador = new Map();
+
+ for(const r of rotas){
+  if((r.cicloId||r.dataPagamento) !== cicloSelecionado) continue;
+  
+  // FILTRO OBRIGATÓRIO: APENAS SERVIÇOS COM STATUS 'validado' (CORRETO)
+  if(r.status !== "validado") continue;
+
+  const pagamentos = paymentsForRoute(r);
+  for(const p of pagamentos){
+   const key = p.prestadorId ? ("p:" + p.prestadorId) : ("legacy:" + p.tipo + ":" + p.apelido);
+   
+   if(prestadorFiltro !== "TODOS" && key !== prestadorFiltro) continue;
+
+   const valorBrutoServico = n(p.diaria) + n(p.adicional) + n(p.aluguel) + n(p.km) + n(p.pedagio);
+
+   if(!gruposPorPrestador.has(key)){
+    const prestadorObj = allPpl.find(x => x.key === key);
+    gruposPorPrestador.set(key, {
+     chave: key,
+     nome: p.prestadorNome || p.apelido,
+     codigo: p.codigo || (prestadorObj ? prestadorObj.codigo : "—"),
+     itens: [],
+     totalPrestador: 0
+    });
+   }
+
+   const grupo = gruposPorPrestador.get(key);
+   grupo.itens.push({
+    rota: r,
+    pagamento: p,
+    valorBruto: valorBrutoServico
+   });
+   grupo.totalPrestador += valorBrutoServico;
+  }
+ }
+
+ const listaGrupos = Array.from(gruposPorPrestador.values()).sort((a,b)=>a.nome.localeCompare(b.nome));
+ const valorTotalPagoNoDia = listaGrupos.reduce((acc, cur) => acc + cur.totalPrestador, 0);
+
+ if(listaGrupos.length === 0){
+  box.innerHTML = '<div class="bg-white border rounded-2xl p-8 text-center text-slate-400 font-semibold shadow-sm">Nenhum serviço validado com status "Correto" encontrado para este filtro.</div>';
+  return;
+ }
+
+ box.innerHTML = `
+ <div class="space-y-6">
+  <!-- CABEÇALHO DO RELATÓRIO -->
+  <div class="bg-white border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+   <div>
+    <span class="text-[10px] uppercase font-bold text-blue-600 tracking-wider">Folha de Pagamentos Validados</span>
+    <h3 class="text-xl font-black text-slate-900">Demonstrativo de Repasse por Prestador</h3>
+    <p class="text-xs text-slate-500 mt-0.5">Data / Ciclo de Pagamento: <b class="text-slate-800">${esc(cicloSelecionado)}</b></p>
+   </div>
+   <div class="text-right">
+    <div class="text-[11px] font-bold text-slate-500 uppercase">Total a Ser Pago no Dia</div>
+    <div class="text-2xl font-black text-emerald-700">${brl(valorTotalPagoNoDia)}</div>
+   </div>
+  </div>
+
+  <!-- ITERAÇÃO POR PRESTADOR: NOME -> RELAÇÃO -> TOTAL -->
+  ${listaGrupos.map(grupo => `
+   <div class="bloco-prestador bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+    <!-- NOME DO PRESTADOR -->
+    <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-2">
+     <h4 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+      <i class="fa-solid fa-user-check text-blue-600"></i> ${esc(grupo.nome)}
+      <span class="text-xs font-mono font-bold text-slate-500">(${esc(grupo.codigo)})</span>
+     </h4>
+     <span class="text-xs text-slate-400 font-semibold">${grupo.itens.length} serviço(s) validados</span>
+    </div>
+
+    <!-- RELAÇÃO DE SERVIÇOS COM DETALHES -->
+    <div class="overflow-x-auto">
+     <table class="w-full text-xs text-left min-w-[700px]">
+      <thead class="bg-slate-50 uppercase text-slate-500 border-b">
+       <tr>
+        <th class="p-2.5">Data</th>
+        <th class="p-2.5">Função / Veículo</th>
+        <th class="p-2.5">Composição do Pagamento</th>
+        <th class="p-2.5 text-right">Valor do Serviço</th>
+       </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+       ${grupo.itens.map(item => `
+        <tr class="hover:bg-slate-50/50">
+         <td class="p-2.5 font-bold text-slate-800">${esc(fmtDate(item.rota.data))}</td>
+         <td class="p-2.5">
+          <span class="font-bold text-slate-700">${esc(item.pagamento.tipo==="veiculo"?"Proprietário do Veículo":item.pagamento.tipo==="motorista"?"Motorista":"Segurança")}</span><br>
+          <span class="text-slate-500 font-mono">${esc(item.rota.placa||"—")}</span> <span class="text-slate-400">(${n(item.rota.km).toFixed(1)} km)</span>
+         </td>
+         <td class="p-2.5 text-slate-600 text-[11px]">
+          Diária: <b>${brl(item.pagamento.diaria)}</b> | Adic: <b>${brl(item.pagamento.adicional)}</b> | Aluguel: <b>${brl(item.pagamento.aluguel)}</b> | KM: <b>${brl(item.pagamento.km)}</b> | Pedágio: <b>${brl(item.pagamento.pedagio)}</b>
+         </td>
+         <td class="p-2.5 text-right font-bold text-slate-900">${brl(item.valorBruto)}</td>
+        </tr>
+       `).join("")}
+      </tbody>
+     </table>
+    </div>
+
+    <!-- TOTAL DO PRESTADOR -->
+    <div class="flex justify-between items-center pt-3 border-t border-slate-100 bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
+     <span class="text-xs font-bold uppercase text-slate-600">Total a Pagar a ${esc(grupo.nome)}:</span>
+     <b class="text-base font-black text-blue-700">${brl(grupo.totalPrestador)}</b>
+    </div>
+   </div>
+  `).join("")}
+
+  <!-- VALOR TOTAL A SER PAGO NO DIA (RODAPÉ FINAL) -->
+  <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+   <div>
+    <h3 class="text-lg font-black uppercase tracking-wider">Valor Total a Ser Pago no Dia</h3>
+    <p class="text-xs text-slate-400 mt-0.5">Soma geral de todos os prestadores no ciclo <b>${esc(cicloSelecionado)}</b></p>
+   </div>
+   <div class="text-right">
+    <div class="text-3xl font-black text-emerald-400">${brl(valorTotalPagoNoDia)}</div>
+   </div>
+  </div>
+ </div>
+ `;
+}
+
+$("rel-filtro-ciclo").addEventListener("change", renderRelatorioPagamentos);
+$("rel-filtro-prestador").addEventListener("change", renderRelatorioPagamentos);
+
+// ABERTURA DA CAIXA DE IMPRESSÃO DO NAVEGADOR
+$("btn-imprimir-relatorio").addEventListener("click", () => {
+ window.print();
+});
+
+function renderExtract(){
+ const box=$("box-extrato");if(!usuarioLogado)return;
+ const cycle=$("filtro-ciclo").value;
+ let chosen;
+ if(isGerente()){chosen=allRecipients().find(p=>p.key===$("filtro-pessoa").value)}
+ else {const p=prestadores.find(x=>x.usuario===usuarioLogado.username);if(p)chosen={key:"p:"+p.id,id:p.id,nome:p.nome,apelido:p.apelido,codigo:p.codigo};else chosen={key:"legacy:"+usuarioLogado.legacyTipo+":"+usuarioLogado.apelido,id:"legacy-"+usuarioLogado.legacyTipo+"-"+usuarioLogado.apelido,nome:usuarioLogado.nome,apelido:usuarioLogado.apelido,tipo:usuarioLogado.legacyTipo}}
+ if(!cycle||!chosen){box.innerHTML='<p class="text-sm text-slate-400 text-center p-8">Selecione um ciclo e um destinatário com registros.</p>';return}
+ const entries=[];
+ for(const r of rotas){
+  if((r.cicloId||r.dataPagamento)!==cycle)continue;
+  for(const p of paymentsForRoute(r)){
+   const matches=chosen.key.startsWith("p:")?p.prestadorId===chosen.id:(p.tipo===chosen.tipo&&p.apelido===chosen.apelido);
+   if(matches)entries.push({r,p});
+  }
+ }
+
+ const sum=k=>entries.reduce((a,x)=>a+n(x.p[k]),0);
+ const totalDiarias=sum("diaria");
+ const totalAdicionais=sum("adicional");
+ const totalAluguel=sum("aluguel");
+ const totalReembolsoPedagio=sum("pedagio");
+ const totalReembolsoKm=sum("km");
+
+ const receitaLiquida = totalDiarias + totalAdicionais + totalAluguel;
+ const totalReembolsos = totalReembolsoPedagio + totalReembolsoKm;
+ const totalGeral = receitaLiquida + totalReembolsos;
+
+ box.innerHTML=`
+ <div class="bg-slate-900 text-white rounded-2xl p-5 shadow flex flex-wrap justify-between items-center gap-4">
+  <div>
+   <div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Extrato de Pagamentos</div>
+   <h3 class="text-2xl font-black">${esc(chosen.nome||chosen.apelido)}</h3>
+   <p class="text-xs text-slate-300 mt-1">Código: <span class="font-mono font-bold">${esc(chosen.codigo||"—")}</span> • Ciclo: <b>${esc(cycle)}</b></p>
+  </div>
+  <div class="text-right">
+   <div class="text-xs text-slate-400 font-bold uppercase">Total a Receber</div>
+   <div class="text-3xl font-black text-emerald-400">${brl(totalGeral)}</div>
+   <div class="text-xs text-slate-400 mt-1">${entries.length} serviço(s) registrado(s)</div>
+  </div>
+ </div>
+
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="bg-white border rounded-2xl p-4 shadow-sm space-y-3">
+   <div class="flex justify-between items-center border-b pb-2">
+    <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
+     <i class="fa-solid fa-hand-holding-dollar text-blue-600"></i> • Diárias e Serviços
+    </h4>
+    <span class="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">Remuneração</span>
+   </div>
+   <div class="space-y-1.5 text-xs">
+    <div class="flex justify-between py-1 border-b border-slate-100"><span class="text-slate-600">Total Diárias</span><b class="text-slate-800">${brl(totalDiarias)}</b></div>
+    <div class="flex justify-between py-1 border-b border-slate-100"><span class="text-slate-600">Total Adicionais</span><b class="text-slate-800">${brl(totalAdicionais)}</b></div>
+    <div class="flex justify-between py-1 border-b border-slate-100"><span class="text-slate-600">Total Aluguel Veículo</span><b class="text-slate-800">${brl(totalAluguel)}</b></div>
+   </div>
+   <div class="pt-2 border-t flex justify-between items-center text-xs">
+    <span class="font-bold text-slate-700 uppercase">Subtotal Serviços</span>
+    <b class="text-sm font-extrabold text-blue-700">${brl(receitaLiquida)}</b>
+   </div>
+  </div>
+
+  <div class="bg-white border rounded-2xl p-4 shadow-sm space-y-3">
+   <div class="flex justify-between items-center border-b pb-2">
+    <h4 class="font-black text-sm text-slate-800 flex items-center gap-2">
+     <i class="fa-solid fa-receipt text-emerald-600"></i> • Reembolsos Operacionais
+    </h4>
+    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">Reembolsos</span>
+   </div>
+   <div class="space-y-1.5 text-xs">
+    <div class="flex justify-between py-1 border-b border-slate-100"><span class="text-slate-600">Reembolso Pedágios Pagos</span><b class="text-slate-800">${brl(totalReembolsoPedagio)}</b></div>
+    <div class="flex justify-between py-1 border-b border-slate-100"><span class="text-slate-600">Reembolso KM Rodado</span><b class="text-slate-800">${brl(totalReembolsoKm)}</b></div>
+   </div>
+   <div class="pt-2 border-t flex justify-between items-center text-xs">
+    <span class="font-bold text-slate-700 uppercase">Subtotal Reembolsos</span>
+    <b class="text-sm font-extrabold text-emerald-700">${brl(totalReembolsos)}</b>
+   </div>
+  </div>
+ </div>
+
+ <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <div class="bg-white border rounded-xl p-3 shadow-sm"><span class="text-[11px] font-bold text-slate-500 uppercase block">Diárias + Adicionais + Aluguel</span><b class="text-base text-blue-700">${brl(receitaLiquida)}</b></div>
+  <div class="bg-white border rounded-xl p-3 shadow-sm"><span class="text-[11px] font-bold text-slate-500 uppercase block">Total Reembolsos (KM + Pedágio)</span><b class="text-base text-emerald-700">${brl(totalReembolsos)}</b></div>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 shadow-sm"><span class="text-[11px] font-bold text-emerald-800 uppercase block">Total Geral a Pagar</span><b class="text-base text-emerald-900 font-black">${brl(totalGeral)}</b></div>
+ </div>
+
+ <div class="bg-white border rounded-xl overflow-x-auto"><table class="w-full min-w-[750px] text-xs text-left"><thead class="bg-slate-50 uppercase text-slate-500"><tr><th class="p-3">Data</th><th class="p-3">Serviço / função</th><th class="p-3">Status</th><th class="p-3">Valores congelados</th><th class="p-3 text-right">Total</th></tr></thead><tbody class="divide-y">${entries.map(({r,p})=>`<tr><td class="p-3">${esc(fmtDate(r.data))}</td><td class="p-3">${esc(p.tipo==="veiculo"?"Proprietário do veículo":p.tipo==="motorista"?"Motorista":p.tipo==="seguranca"?"Segurança":"Prestador")}<br><span class="text-slate-500">${esc(r.placa||"—")} • ${esc(r.horaInicio||"")}–${esc(r.horaFinal||"")}</span></td><td class="p-3">${badgeStatus(r.status)}</td><td class="p-3">Diária ${brl(p.diaria)} + adicional ${brl(p.adicional)} + aluguel ${brl(p.aluguel)} + KM ${brl(p.km)} + pedágio ${brl(p.pedagio)}</td><td class="p-3 text-right font-extrabold">${brl(p.total)}</td></tr>`).join("")||'<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum serviço registrado para este destinatário neste ciclo.</td></tr>'}</tbody></table></div>
+ `;
+}
+
+function renderLegacy(){
+ const old=rotas.filter(r=>r.versaoSchema!==2);
+ $("lista-antigos").innerHTML=old.map(r=>{const ok=r.subMotorista!==undefined||r.subSeguranca!==undefined||r.valDiaria!==undefined;return `<div class="border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div><b>${esc(fmtDate(r.data))} • ${esc(r.motorista||r.motoristaNomeSnapshot||"Motorista não identificado")} / ${esc(r.seguranca||r.segurancaNomeSnapshot||"Segurança não identificado")}</b><p class="text-xs text-slate-500">Placa ${esc(r.placa||"—")} • ciclo ${esc(r.dataPagamento||r.cicloId||"não informado")}</p><p class="text-xs ${ok?"text-emerald-700":"text-rose-700"}">${ok?"Há alguns valores históricos salvos; confira os campos antes de padronizar.":"Não foram encontrados valores financeiros suficientes; preencha manualmente."}</p></div><div class="flex items-center gap-2"><span class="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-3 py-1">PADRÃO ANTIGO</span><button type="button" data-edit-legacy="${esc(r.id)}" class="bg-indigo-600 text-white rounded-lg px-3 py-2 text-xs font-bold">Editar e padronizar</button></div></div>`}).join("")||'<p class="text-sm text-slate-400 py-4">Nenhum registro antigo identificado.</p>';
+}
+
+function legacyOptions(selectId,items,placeholder){const el=$(selectId);el.innerHTML=`<option value="">${esc(placeholder)}</option>`+items.map(x=>`<option value="${esc(x.id)}">${esc(x.apelido||x.nome||x.placa)} — ${esc(x.codigo||x.placa||"")}</option>`).join("")}
+function openLegacyEditor(id){
+ const r=rotas.find(x=>x.id===id);if(!r)return;
+ legacyOptions("antigo-motorista",prestadores.filter(p=>p.funcoes?.includes("motorista")),"Selecione o motorista");
+ legacyOptions("antigo-seguranca",prestadores.filter(p=>p.funcoes?.includes("seguranca")),"Selecione o segurança");
+ legacyOptions("antigo-veiculo",veiculos,"Selecione o veículo cadastrado");
+ $("antigo-id").value=r.id;$("antigo-data").value=/^\d{4}-\d{2}-\d{2}$/.test(r.data||"")?r.data:"";
+ $("antigo-inicio").value=(r.horaInicio||r.horaInicial||"").slice(0,5);$("antigo-final").value=(r.horaFinal||r.horaFim||"").slice(0,5);
+ const norm=v=>String(v||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ const mot=prestadores.find(p=>p.id===r.motoristaId||p.codigo===(r.motoristaCodigo||r.motoristaCodigoSnapshot)||norm(p.nome)===norm(r.motoristaNomeSnapshot||r.motorista)||norm(p.apelido)===norm(r.motorista));
+ const seg=prestadores.find(p=>p.id===r.segurancaId||p.codigo===(r.segurancaCodigo||r.segurancaCodigoSnapshot)||norm(p.nome)===norm(r.segurancaNomeSnapshot||r.seguranca)||norm(p.apelido)===norm(r.seguranca));
+ const v=veiculos.find(x=>x.id===r.veiculoId||String(x.placa||"").replace(/[^a-z0-9]/gi,"").toUpperCase()===String(r.placa||"").replace(/[^a-z0-9]/gi,"").toUpperCase());
+ $("antigo-motorista").value=mot?.id||"";$("antigo-seguranca").value=seg?.id||"";$("antigo-veiculo").value=v?.id||"";
+ $("antigo-km").value=n(r.km??r.kmTotal??0);$("antigo-pedagio").value=n(r.pedagio??r.pedagioTotal??0);
+ const daily=n(r.valDiaria??parametros.diaria),extra=n(r.valAdic??0);
+ $("antigo-mot-diaria").value=n(r.subMotorista)!==0&&r.valDiaria===undefined?Math.max(0,n(r.subMotorista)-extra):daily;
+ $("antigo-mot-adic").value=extra;$("antigo-seg-diaria").value=n(r.subSeguranca)!==0&&r.valDiaria===undefined?Math.max(0,n(r.subSeguranca)-extra):daily;$("antigo-seg-adic").value=extra;
+ $("antigo-aluguel").value=n(r.valAluguel??parametros.aluguel);$("antigo-km-valor").value=n(r.valKm??(n(r.km??r.kmTotal??0)*parametros.km));$("antigo-pedagio-valor").value=n(r.pedagio??r.pedagioTotal??0);
+ updateLegacyOwnerInfo();$("editor-lancamento-antigo").classList.remove("hidden");$("editor-lancamento-antigo").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function updateLegacyOwnerInfo(){const v=getVeiculo($("antigo-veiculo").value),p=getPrestador(v?.proprietarioId);$("antigo-owner-info").textContent=p?`Proprietário dos reembolsos: ${p.nome} • ${p.codigo}`:"Selecione um veículo cadastrado com proprietário definido."}
+function closeLegacyEditor(){$("editor-lancamento-antigo").classList.add("hidden");$("form-editar-antigo").reset();$("antigo-id").value=""}
+
+function setCfgInputs(){$("cfg-diaria").value=parametros.diaria;$("cfg-adic").value=parametros.adicional;$("cfg-km").value=parametros.km;$("cfg-aluguel").value=parametros.aluguel;$("top-cfg-diaria").textContent=brl(parametros.diaria);$("top-cfg-adic").textContent=brl(parametros.adicional);$("top-cfg-km").textContent=brl(parametros.km)+"/km";$("top-cfg-aluguel").textContent=brl(parametros.aluguel)}
+
+$("tab-auth-login").addEventListener("click",()=>{
+ $("tab-auth-login").className="flex-1 py-2 rounded-lg bg-white shadow-sm text-blue-600";
+ $("tab-auth-cadastro").className="flex-1 py-2 rounded-lg text-slate-600";
+ $("form-login").classList.remove("hidden");
+ $("form-cadastro").classList.add("hidden");
+ $("login-erro").classList.add("hidden");
+});
+$("tab-auth-cadastro").addEventListener("click",()=>{
+ $("tab-auth-cadastro").className="flex-1 py-2 rounded-lg bg-white shadow-sm text-emerald-600";
+ $("tab-auth-login").className="flex-1 py-2 rounded-lg text-slate-600";
+ $("form-cadastro").classList.remove("hidden");
+ $("form-login").classList.add("hidden");
+ $("login-erro").classList.add("hidden");
+});
+
+$("form-login").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const u=username($("login-username").value),err=$("login-erro"),btn=$("btn-login");
+ err.classList.add("hidden");
+ btn.disabled=true;
+ try{
+  await signInWithEmailAndPassword(auth,u+DOMINIO,$("login-senha").value);
+ }catch(ex){
+  err.textContent=`Falha no acesso para "${u}". Verifique usuário, senha ou cadastre-se.`;
+  err.classList.remove("hidden");
+ }finally{
+  btn.disabled=false;
+ }
+});
+
+$("form-cadastro").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const nome=$("cad-nome").value.trim(),apelido=$("cad-apelido").value.trim(),u=username($("cad-username").value);
+ const s1=$("cad-senha").value,s2=$("cad-senha2").value,err=$("login-erro"),btn=$("btn-cadastro");
+ const rolePretendido=$("cad-role-pretendido").value;
+ err.classList.add("hidden");
+
+ if(s1!==s2){err.textContent="As senhas informadas não coincidem.";err.classList.remove("hidden");return}
+ const funcoes=[];
+ if($("cad-motorista").checked)funcoes.push("motorista");
+ if($("cad-seguranca").checked)funcoes.push("seguranca");
+ if(!funcoes.length){err.textContent="Selecione ao menos uma função.";err.classList.remove("hidden");return}
+
+ btn.disabled=true;
+ try{
+  await createUserWithEmailAndPassword(auth,u+DOMINIO,s1);
+  const allP=await loadCollection("prestadores");
+  const proximoNum=allP.reduce((m,p)=>Math.max(m,Number(String(p.codigo||"").replace(/\D/g,""))||0),0)+1;
+  const codigo="P"+String(proximoNum).padStart(4,"0");
+  
+  const querGerente = (rolePretendido === "gerente");
+  const novoPrestador={
+   id:"p_"+u+"_"+Date.now().toString(36),
+   codigo,
+   nome,
+   apelido,
+   usuario:u,
+   role:"prestador",
+   solicitacaoGerente:querGerente?"pendente":"nenhuma",
+   solicitadoEm:querGerente?new Date().toISOString():null,
+   funcoes,
+   createdAt:new Date().toISOString(),
+   updatedAt:new Date().toISOString()
+  };
+  await setDoc(doc(db,"prestadores",novoPrestador.id),novoPrestador);
+  if(querGerente){
+   toast(`Conta criada! A solicitação de acesso Gerente foi enviada para aprovação do Administrador.`);
+  }else{
+   toast(`Conta criada com sucesso! Código ${codigo}`);
+  }
+ }catch(ex){
+  console.error(ex);
+  err.textContent=ex.code==="auth/email-already-in-use"?`O usuário "${u}" já está cadastrado.`:`Erro ao cadastrar: ${ex.message}`;
+  err.classList.remove("hidden");
+ }finally{
+  btn.disabled=false;
+ }
+});
+
+document.addEventListener("click",async e=>{
+ const btnAprovar = e.target.closest("[data-aprovar-gerente]");
+ const btnRecusar = e.target.closest("[data-recusar-gerente]");
+ 
+ if(btnAprovar && isAdmin()){
+  const id = btnAprovar.dataset.aprovarGerente;
+  const prestador = prestadores.find(p=>p.id===id);
+  if(!prestador) return;
+  if(!confirm(`Confirma aprovar o usuário ${prestador.nome} (${prestador.usuario}) como GERENTE?`)) return;
+  try{
+   await updateDoc(doc(db,"prestadores",id),{
+    role:"gerente",
+    solicitacaoGerente:"aprovada",
+    aprovadoPor:usuarioLogado.username,
+    aprovadoEm:new Date().toISOString()
+   });
+   prestador.role="gerente";
+   prestador.solicitacaoGerente="aprovada";
+   renderCadastros();
+   toast(`Privilégio de Gerente aprovado para ${prestador.nome}!`);
+  }catch(err){
+   console.error(err);
+   toast("Erro ao aprovar gerente: "+err.message,false);
+  }
+ }
+
+ if(btnRecusar && isAdmin()){
+  const id = btnRecusar.dataset.recusarGerente;
+  const prestador = prestadores.find(p=>p.id===id);
+  if(!prestador) return;
+  if(!confirm(`Recusar solicitação de Gerente para ${prestador.nome}?`)) return;
+  try{
+   await updateDoc(doc(db,"prestadores",id),{
+    role:"prestador",
+    solicitacaoGerente:"recusada",
+    recusadoPor:usuarioLogado.username,
+    recusadoEm:new Date().toISOString()
+   });
+   prestador.role="prestador";
+   prestador.solicitacaoGerente="recusada";
+   renderCadastros();
+   toast(`Solicitação recusada. ${prestador.nome} mantido como Prestador.`);
+  }catch(err){
+   console.error(err);
+   toast("Erro ao recusar solicitação: "+err.message,false);
+  }
+ }
+});
+
+$("btn-abrir-senha").addEventListener("click",()=>{
+ $("nova-senha").value="";$("confirma-nova-senha").value="";
+ $("modal-senha").classList.remove("hidden");
+});
+$("btn-fechar-modal-senha").addEventListener("click",()=>{$("modal-senha").classList.add("hidden")});
+$("btn-cancelar-modal-senha").addEventListener("click",()=>{$("modal-senha").classList.add("hidden")});
+
+$("form-alterar-senha").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const s1=$("nova-senha").value,s2=$("confirma-nova-senha").value;
+ if(s1!==s2){toast("As novas senhas não coincidem.",false);return}
+ if(s1.length<6){toast("A senha precisa ter no mínimo 6 caracteres.",false);return}
+
+ const btn=$("btn-salvar-senha");
+ btn.disabled=true;
+ try{
+  if(!auth.currentUser) throw new Error("Usuário não autenticado.");
+  await updatePassword(auth.currentUser, s1);
+  $("modal-senha").classList.add("hidden");
+  toast("Senha modificada com sucesso!");
+ }catch(ex){
+  console.error(ex);
+  toast(ex.code==="auth/requires-recent-login"?"Faça logout e login novamente para trocar a senha.":"Erro ao alterar senha: "+ex.message,false);
+ }finally{
+  btn.disabled=false;
+ }
+});
+
+$("btn-logout").addEventListener("click",()=>signOut(auth));
+
+onAuthStateChanged(auth,async user=>{
+ if(!user){
+  usuarioLogado=null;
+  $("auth-screen").classList.remove("hidden");
+  $("app-container").classList.add("hidden");
+  return;
+ }
+ const u=username(user.email);
+ const snapPrestadores=await loadCollection("prestadores");
+ const dbUser=snapPrestadores.find(p=>username(p.usuario)===u);
+ const mapped=MAPA_USUARIOS[u] || (dbUser?{nome:dbUser.nome,apelido:dbUser.apelido,role:dbUser.role||"prestador"}:null);
+ usuarioLogado={username:u,email:user.email,...(mapped||{nome:u,apelido:u,role:"prestador"})};
+
+ $("user-display-name").textContent=usuarioLogado.nome;
+ const roleText=isAdmin()?"ADMINISTRADOR":isGerente()?"GERENTE":"PRESTADOR";
+ $("user-display-role").textContent=roleText;
+
+ $("auth-screen").classList.add("hidden");
+ $("app-container").classList.remove("hidden");
+
+ $("tab-validacao-btn").classList.toggle("hidden",!isGerente());
+ $("tab-relatorios-btn").classList.toggle("hidden",!isGerente());
+ $("tab-cadastros-btn").classList.toggle("hidden",!isAdmin());
+ $("tab-antigos-btn").classList.toggle("hidden",!isAdmin());
+ $("wrapper-filtro-pessoa").classList.toggle("hidden",!isGerente());
+
+ await loadAll();
+});
+
+document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{
+ if(b.classList.contains("hidden"))return;
+ document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("tab-active"));
+ b.classList.add("tab-active");
+ document.querySelectorAll(".tab-pane").forEach(x=>x.classList.add("hidden"));
+ $("aba-"+b.dataset.tab).classList.remove("hidden");
+ if(b.dataset.tab==="fechamentos"){populateCycle();renderExtract()}
+ if(b.dataset.tab==="relatorios"){populateCycle();renderRelatorioPagamentos()}
+ if(b.dataset.tab==="validacao"){renderValidacao()}
+ if(b.dataset.tab==="cadastros"){renderCadastros()}
+ if(b.dataset.tab==="antigos")renderLegacy();
+}));
+
+["dataRota","horaInicio","horaFinal","kmTotal","pedagioTotal","veiculoSelect"].forEach(id=>$(id).addEventListener("input",newCalc));
+
+function cancelRouteEdit(){
+  $("rota-edit-id").value="";$("modo-edicao-rota").classList.add("hidden");
+  $("btn-submit-rota").innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores';
+  $("form-rota").reset();$("kmTotal").value="0";$("pedagioTotal").value="0";newCalc();
+}
+
+function editRoute(id){
+  const r=rotas.find(x=>x.id===id);if(!r)return;
+  if(r.versaoSchema!==2){openLegacyEditor(id);return;}
+  populateSelects();$("rota-edit-id").value=r.id;$("dataRota").value=r.data||"";$("horaInicio").value=r.horaInicio||"";$("horaFinal").value=r.horaFinal||"";
+  $("veiculoSelect").value=r.veiculoId||"";$("motoristaSelect").value=r.motoristaId||"";$("segurancaSelect").value=r.segurancaId||"";
+  $("kmTotal").value=Number(r.km||0);$("pedagioTotal").value=Number(r.pedagio||0);
+  $("modo-edicao-rota").classList.remove("hidden");$("btn-submit-rota").innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Salvar alterações do lançamento';
+  $("form-rota").scrollIntoView({behavior:"smooth",block:"start"});newCalc();
+}
+$("btn-cancelar-edicao-rota").addEventListener("click",cancelRouteEdit);
+
+$("form-rota").addEventListener("submit",async e=>{
+ e.preventDefault();if(!usuarioLogado)return;if(busy)return;
+ const editId=$("rota-edit-id").value;const existing=editId?rotas.find(x=>x.id===editId):null;
+ const c=newCalc();if(!c.v||!c.owner){toast("O veículo precisa ter proprietário cadastrado antes de gravar.",false);return}
+ const mot=getPrestador($("motoristaSelect").value),seg=getPrestador($("segurancaSelect").value);if(!mot||!seg){toast("Cadastre pelo menos um motorista e um segurança habilitados.",false);return}
+ busy=true;$("btn-submit-rota").disabled=true;
+ try{
+  const dt=$("dataRota").value,cy=ciclo(dt),rates=existing?.paramsSnapshot||{diaria:n(existing?.valDiaria)||parametros.diaria,adicional:n(existing?.valAdic)||parametros.adicional,km:(n(existing?.km)>0&&n(existing?.valKm)>0)?n(existing.valKm)/n(existing.km):parametros.km,aluguel:n(existing?.valAluguel)||parametros.aluguel};
+  const extra=c.mins>330?n(rates.adicional):0,diaria=n(rates.diaria),kmVal=Math.round(c.km*n(rates.km)*100)/100,toll=Math.round(c.toll*100)/100,rent=Math.round(n(rates.aluguel)*100)/100;
+  const payMot={prestadorId:mot.id,prestadorCodigo:mot.codigo,prestadorNome:mot.nome,apelido:mot.apelido,tipo:"motorista",diaria,adicional:extra,aluguel:0,km:0,pedagio:0,liquido:diaria+extra,reembolso:0,total:diaria+extra};
+  const paySeg={prestadorId:seg.id,prestadorCodigo:seg.codigo,prestadorNome:seg.nome,apelido:seg.apelido,tipo:"seguranca",diaria,adicional:extra,aluguel:0,km:0,pedagio:0,liquido:diaria+extra,reembolso:0,total:diaria+extra};
+  let owner=c.owner;
+  if(existing&&existing.veiculoId===c.v.id&&existing.proprietarioIdSnapshot){owner=getPrestador(existing.proprietarioIdSnapshot)||owner;}
+  const payOwner={prestadorId:owner.id,prestadorCodigo:owner.codigo,prestadorNome:owner.nome,apelido:owner.apelido,tipo:"veiculo",diaria:0,adicional:0,aluguel:rent,km:kmVal,pedagio:toll,liquido:rent,reembolso:kmVal+toll,total:rent+kmVal+toll};
+  const map=new Map();for(const p of [payMot,paySeg,payOwner]){const key=p.prestadorId;if(!map.has(key))map.set(key,{...p});else{const q=map.get(key);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(p[k]))*100)/100;q.tipo=q.tipo===p.tipo?q.tipo:[q.tipo,p.tipo].filter(Boolean).join("/");}}
+  const payments=[...map.values()].map(p=>({...p,totalRotaItem:p.total}));
+
+  const route={
+   ...(existing||{}),
+   versaoSchema:2,
+   data:dt,
+   horaInicio:$("horaInicio").value,
+   horaFinal:$("horaFinal").value,
+   duracao:duration(c.mins),
+   minutosDuracao:c.mins,
+   atingiu5h30:extra>0,
+   km:c.km,
+   placa:c.v.placa,
+   modeloVeiculoSnapshot:c.v.modelo,
+   marcaVeiculoSnapshot:c.v.marca||"",
+   veiculoId:c.v.id,
+   proprietarioIdSnapshot:owner.id,
+   proprietarioCodigoSnapshot:owner.codigo,
+   proprietarioNomeSnapshot:owner.nome,
+   motoristaId:mot.id,
+   motoristaCodigoSnapshot:mot.codigo,
+   motoristaNomeSnapshot:mot.nome,
+   motorista:mot.apelido,
+   segurancaId:seg.id,
+   segurancaCodigoSnapshot:seg.codigo,
+   segurancaNomeSnapshot:seg.nome,
+   seguranca:seg.apelido,
+   paramsSnapshot:{...rates},
+   valDiaria:diaria,
+   valAdic:extra,
+   valKm:kmVal,
+   valAluguel:rent,
+   pedagio:toll,
+   pagamentos:payments,
+   cicloId:cy.id,
+   dataPagamento:cy.label,
+   totalRota:payments.reduce((sum,p)=>sum+p.total,0),
+   status:existing?.status==="pendente_correcao"?"pendente_validacao":(existing?.status||"pendente_validacao"),
+   obsValidacao:existing?.obsValidacao||"",
+   updatedAt:new Date().toISOString(),
+   ...(existing?{editadoPor:usuarioLogado.username,editadoEm:new Date().toISOString()}:{criadoPor:usuarioLogado.username,createdAt:new Date().toISOString()})
+  };
+
+  if(existing){
+   await setDoc(doc(db,"rotas",existing.id),route,{merge:true});
+   Object.assign(existing,route);
+   toast("Lançamento atualizado e reenviado para conferência.");
+  }else{
+   const ref=await addDoc(collection(db,"rotas"),route);
+   rotas.push({id:ref.id,...route});
+   toast("Serviço gravado com sucesso! Aguardando validação do gerente.");
+  }
+
+  cancelRouteEdit();populateSelects();renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();
+ }catch(ex){console.error(ex);toast((existing?"Erro ao atualizar":"Erro ao gravar")+" no Firebase: "+ex.message,false)}finally{busy=false;$("btn-submit-rota").disabled=false}
+});
+
+$("btn-limpar").addEventListener("click",()=>{if($("rota-edit-id").value)cancelRouteEdit();else{$("form-rota").reset();$("kmTotal").value="0";$("pedagioTotal").value="0";newCalc()}});
+
+function resetPrestadorForm(){ $("form-prestador").reset(); $("p-edit-id").value=""; $("btn-salvar-prestador").textContent="Cadastrar prestador"; $("btn-cancelar-prestador").classList.add("hidden"); }
+function resetVeiculoForm(){ $("form-veiculo").reset(); $("v-edit-id").value=""; $("btn-salvar-veiculo").textContent="Cadastrar veículo"; $("btn-cancelar-veiculo").classList.add("hidden"); }
+
+function editPrestador(id){
+ const p=getPrestador(id);if(!p)return;
+ $("p-edit-id").value=p.id;$("p-nome").value=p.nome||"";$("p-apelido").value=p.apelido||"";$("p-usuario").value=p.usuario||"";
+ $("p-role").value=p.role||"prestador";
+ $("p-motorista").checked=(p.funcoes||[]).includes("motorista");$("p-seguranca").checked=(p.funcoes||[]).includes("seguranca");
+ $("btn-salvar-prestador").textContent="Salvar alterações";$("btn-cancelar-prestador").classList.remove("hidden");
+ $("form-prestador").scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+function editVeiculo(id){
+ const v=getVeiculo(id);if(!v)return;
+ $("v-edit-id").value=v.id;$("v-placa").value=v.placa||"";$("v-marca").value=v.marca||"";$("v-modelo").value=v.modelo||"";
+ populateSelects();$("v-proprietario").value=v.proprietarioId||"";
+ $("btn-salvar-veiculo").textContent="Salvar alterações";$("btn-cancelar-veiculo").classList.remove("hidden");
+ $("form-veiculo").scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+$("btn-cancelar-prestador").addEventListener("click",resetPrestadorForm);
+$("btn-cancelar-veiculo").addEventListener("click",resetVeiculoForm);
+
+$("form-prestador").addEventListener("submit",async e=>{
+ e.preventDefault();if(!isAdmin())return;
+ const funcoes=[];
+ if($("p-motorista").checked)funcoes.push("motorista");
+ if($("p-seguranca").checked)funcoes.push("seguranca");
+ if(!funcoes.length){toast("Selecione ao menos uma função.",false);return}
+ 
+ const editId=$("p-edit-id").value;
+ const existing=editId?getPrestador(editId):null;
+ const codigo=existing?.codigo||"P"+String(prestadores.reduce((m,p)=>Math.max(m,Number(String(p.codigo||"").replace(/\D/g,""))||0),0)+1).padStart(4,"0");
+ 
+ const p={
+  ...(existing||{}),
+  id:editId||uid("p"),
+  codigo,
+  nome:$("p-nome").value.trim(),
+  apelido:$("p-apelido").value.trim(),
+  usuario:username($("p-usuario").value),
+  role:$("p-role").value||"prestador",
+  funcoes,
+  createdAt:existing?.createdAt||new Date().toISOString(),
+  updatedAt:new Date().toISOString()
+ };
+
+ try{
+  await setDoc(doc(db,"prestadores",p.id),p);
+  if(existing)prestadores=prestadores.map(x=>x.id===p.id?p:x);else prestadores.push(p);
+  resetPrestadorForm();populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();
+  toast(existing?"Cadastro do prestador atualizado.":"Prestador cadastrado com código "+codigo);
+ }catch(ex){toast("Erro ao salvar prestador: "+ex.message,false)}
+});
+
+$("form-veiculo").addEventListener("submit",async e=>{
+ e.preventDefault();if(!isAdmin())return;
+ const editId=$("v-edit-id").value;
+ const placa=$("v-placa").value.trim().toUpperCase().replace(/\s/g,"");
+ if(veiculos.some(v=>v.placa.toUpperCase()===placa&&v.id!==editId)){toast("Já existe veículo cadastrado com essa placa.",false);return}
+ const p=getPrestador($("v-proprietario").value);if(!p){toast("Selecione um proprietário válido.",false);return}
+ const existing=editId?getVeiculo(editId):null;
+ const v={...(existing||{}),id:editId||uid("v"),placa,marca:$("v-marca").value.trim().toUpperCase(),modelo:$("v-modelo").value.trim().toUpperCase(),proprietarioId:p.id,proprietarioNome:p.nome,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+ try{await setDoc(doc(db,"veiculos",v.id),v);if(existing)veiculos=veiculos.map(x=>x.id===v.id?v:x);else veiculos.push(v);resetVeiculoForm();populateSelects();renderRoutes();toast(existing?"Cadastro do veículo atualizado.":"Veículo cadastrado e vinculado.")}catch(ex){toast("Erro ao salvar veículo: "+ex.message,false)}
+});
+
+document.addEventListener("click",async e=>{
+ const ep=e.target.closest("[data-edit-p]"),ev=e.target.closest("[data-edit-v]"),er=e.target.closest("[data-edit-r]"),bp=e.target.closest("[data-del-p]"),bv=e.target.closest("[data-del-v]"),br=e.target.closest("[data-del-r]");
+ if(ep&&isAdmin()){editPrestador(ep.dataset.editP);return}
+ if(ev&&isAdmin()){editVeiculo(ev.dataset.editV);return}
+ if(er&&(isAdmin()||isGerente())){editRoute(er.dataset.editR);return}
+ if(bp&&isAdmin()){const id=bp.dataset.delP;if(!confirm("Excluir cadastro do prestador?"))return;try{await deleteDoc(doc(db,"prestadores",id));prestadores=prestadores.filter(p=>p.id!==id);populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();toast("Cadastro excluído.")}catch(ex){toast(ex.message,false)}}
+ if(bv&&isAdmin()){const id=bv.dataset.delV;if(!confirm("Excluir cadastro do veículo?"))return;try{await deleteDoc(doc(db,"veiculos",id));veiculos=veiculos.filter(v=>v.id!==id);populateSelects();toast("Veículo excluído.")}catch(ex){toast(ex.message,false)}}
+ if(br&&isAdmin()){const id=br.dataset.delR;if(!confirm("Excluir este serviço?"))return;try{await deleteDoc(doc(db,"rotas",id));rotas=rotas.filter(r=>r.id!==id);renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();toast("Registro excluído.")}catch(ex){toast("Erro ao excluir: "+ex.message,false)}}
+});
+
+$("form-parametros").addEventListener("submit",async e=>{
+ e.preventDefault();if(!isAdmin())return;
+ const cfg={id:"parametros",diaria:n($("cfg-diaria").value),adicional:n($("cfg-adic").value),km:n($("cfg-km").value),aluguel:n($("cfg-aluguel").value),updatedAt:new Date().toISOString()};
+ try{await setDoc(doc(db,"systemConfig","parametros"),cfg);parametros={diaria:cfg.diaria,adicional:cfg.adicional,km:cfg.km,aluguel:cfg.aluguel};setCfgInputs();newCalc();toast("Parâmetros salvos.")}catch(ex){toast("Erro ao salvar parâmetros: "+ex.message,false)}
+});
+
+$("filtro-ciclo").addEventListener("change",renderExtract);
+$("filtro-pessoa").addEventListener("change",renderExtract);
+
+$("btn-migrar-prestadores").addEventListener("click",async()=>{
+ if(!isAdmin())return;
+ if(!confirm("Deseja vincular P0004/P0005 aos cadastros oficiais?"))return;
+ const alvo=[
+  {codigo:"P0001",id:"p_jlima",nome:"Jesse Lima da Silva",apelido:"J. Lima",usuario:"jlima",oldCode:"P0004",oldNames:["Jesse Lima da Silva","Jesse","J. Lima","JLima"]},
+  {codigo:"P0002",id:"p_acaetano",nome:"Anderson Caetano de Souza",apelido:"Anderson",usuario:"acaetano",oldCode:"P0005",oldNames:["Anderson Caetano de Souza","Anderson","A. Caetano"]},
+  {codigo:"P0003",id:"p_akaique",nome:"Andre Kaique Cloraso",apelido:"Kaique",usuario:"akaique",oldCode:null,oldNames:["Andre Kaique Cloraso","Andre Kaique Clorado","Andre Kaique","Kaique"]}
+ ];
+ const norm=v=>String(v||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ try{
+  const allP=await loadCollection("prestadores"), oldIdsByCode={};
+  for(const a of alvo){
+   const olds=allP.filter(p=>p.codigo===a.oldCode && a.oldCode);
+   oldIdsByCode[a.oldCode]=olds.map(p=>p.id);
+   const existing=allP.find(p=>p.codigo===a.codigo && !p.mergedInto) || allP.find(p=>p.id===a.id);
+   const canonical={...(existing||{}),id:existing?.id||a.id,codigo:a.codigo,nome:a.nome,apelido:a.apelido,usuario:a.usuario,funcoes:["motorista","seguranca"],updatedAt:new Date().toISOString()};
+   await setDoc(doc(db,"prestadores",canonical.id),canonical);
+   a.targetId=canonical.id;
+   for(const old of olds){
+    if(old.id!==canonical.id)await setDoc(doc(db,"prestadores",old.id),{...old,mergedInto:canonical.id,mergedIntoCodigo:a.codigo,updatedAt:new Date().toISOString()});
+   }
+  }
+  let changed=0;
+  for(const r of rotas){
+   const patch={};
+   for(const a of alvo){
+    const ids=oldIdsByCode[a.oldCode]||[];
+    const names=a.oldNames.map(norm);
+    const motName=norm(r.motoristaNomeSnapshot||r.motorista),segName=norm(r.segurancaNomeSnapshot||r.seguranca);
+    const motMatch=(a.oldCode && (r.motoristaCodigo===a.oldCode || r.motoristaCodigoSnapshot===a.oldCode))||ids.includes(r.motoristaId)||names.includes(motName);
+    const segMatch=(a.oldCode && (r.segurancaCodigo===a.oldCode || r.segurancaCodigoSnapshot===a.oldCode))||ids.includes(r.segurancaId)||names.includes(segName);
+    if(motMatch){patch.motoristaId=a.targetId;patch.motoristaCodigoSnapshot=a.codigo;patch.motoristaNomeSnapshot=a.nome;}
+    if(segMatch){patch.segurancaId=a.targetId;patch.segurancaCodigoSnapshot=a.codigo;patch.segurancaNomeSnapshot=a.nome;}
+   }
+   if(Array.isArray(r.pagamentos)){
+    patch.pagamentos=r.pagamentos.map(pay=>{
+     const a=alvo.find(x=>pay.prestadorCodigo===x.oldCode || (oldIdsByCode[x.oldCode]||[]).includes(pay.prestadorId) || x.oldNames.map(norm).includes(norm(pay.prestadorNome||pay.apelido)));
+     if(!a)return pay;
+     return {...pay,prestadorId:a.targetId,prestadorCodigo:a.codigo,prestadorNome:a.nome};
+    });
+   }
+   if(Object.keys(patch).length){await setDoc(doc(db,"rotas",r.id),patch,{merge:true});Object.assign(r,patch);changed++;}
+  }
+  prestadores=(await loadCollection("prestadores")).filter(p=>!p.mergedInto);
+  populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();renderRoutes();renderValidacao();renderLegacy();
+  toast(`Migração concluída: ${changed} registro(s) vinculados.`);
+ }catch(ex){console.error(ex);toast("Falha na migração: "+ex.message,false)}
+});
+
+$("antigo-veiculo").addEventListener("change",updateLegacyOwnerInfo);
+$("btn-cancelar-edicao-antiga").addEventListener("click",closeLegacyEditor);
+$("btn-cancelar-edicao-antiga-2").addEventListener("click",closeLegacyEditor);
+document.addEventListener("click",e=>{const b=e.target.closest("[data-edit-legacy]");if(b&&(isAdmin()||isGerente()))openLegacyEditor(b.dataset.editLegacy)});
+
+$("form-editar-antigo").addEventListener("submit",async e=>{
+ e.preventDefault();if(!isAdmin()&&!isGerente())return;
+ const id=$("antigo-id").value,r=rotas.find(x=>x.id===id);if(!r){toast("Lançamento antigo não encontrado.",false);return}
+ const mot=getPrestador($("antigo-motorista").value),seg=getPrestador($("antigo-seguranca").value),v=getVeiculo($("antigo-veiculo").value),owner=getPrestador(v?.proprietarioId);
+ if(!mot||!seg||!v||!owner){toast("Selecione motorista, segurança e veículo cadastrado.",false);return}
+ const money=id=>Math.round(n($(id).value)*100)/100;
+ const vals={motD:money("antigo-mot-diaria"),motA:money("antigo-mot-adic"),segD:money("antigo-seg-diaria"),segA:money("antigo-seg-adic"),rent:money("antigo-aluguel"),kmVal:money("antigo-km-valor"),tollVal:money("antigo-pedagio-valor")};
+ const dt=$("antigo-data").value,cy=ciclo(dt),km=n($("antigo-km").value),toll=money("antigo-pedagio");
+ const makePay=(p,tipo,diaria,adicional,aluguel=0,kmr=0,ped=0)=>({prestadorId:p.id,prestadorCodigo:p.codigo,prestadorNome:p.nome,apelido:p.apelido,tipo,diaria,adicional,aluguel,km:kmr,pedagio:ped,liquido:Math.round((diaria+adicional+aluguel)*100)/100,reembolso:Math.round((kmr+ped)*100)/100,total:Math.round((diaria+adicional+aluguel+kmr+ped)*100)/100,legacy:false,manualLegacyNormalization:true});
+ const source=[makePay(mot,"motorista",vals.motD,vals.motA),makePay(seg,"seguranca",vals.segD,vals.segA),makePay(owner,"veiculo",0,0,vals.rent,vals.kmVal,vals.tollVal)];
+ const grouped=new Map();for(const pay of source){if(!grouped.has(pay.prestadorId))grouped.set(pay.prestadorId,{...pay});else{const q=grouped.get(pay.prestadorId);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(pay[k]))*100)/100;q.tipo=q.tipo===pay.tipo?q.tipo:[q.tipo,pay.tipo].filter(Boolean).join("/");q.manualLegacyNormalization=true}}
+ const payments=[...grouped.values()];const start=$("antigo-inicio").value,end=$("antigo-final").value;let mins=0;if(start&&end){const [h1,m1]=start.split(":").map(Number),[h2,m2]=end.split(":").map(Number);mins=(h2*60+m2)-(h1*60+m1);if(mins<0)mins+=1440}
+ const patch={versaoSchema:2,data:dt,horaInicio:start,horaFinal:end,duracao:duration(mins),minutosDuracao:mins,atingiu5h30:(vals.motA>0||vals.segA>0),km,placa:v.placa,modeloVeiculoSnapshot:v.modelo,marcaVeiculoSnapshot:v.marca||"",veiculoId:v.id,proprietarioIdSnapshot:owner.id,proprietarioCodigoSnapshot:owner.codigo,proprietarioNomeSnapshot:owner.nome,motoristaId:mot.id,motoristaCodigoSnapshot:mot.codigo,motoristaNomeSnapshot:mot.nome,motorista:mot.apelido,segurancaId:seg.id,segurancaCodigoSnapshot:seg.codigo,segurancaNomeSnapshot:seg.nome,seguranca:seg.apelido,valDiaria:vals.motD,valAdic:vals.motA,valKm:vals.kmVal,valAluguel:vals.rent,pedagio:toll,pagamentos:payments,cicloId:cy.id,dataPagamento:cy.label,totalRota:payments.reduce((sum,p)=>sum+p.total,0),status:r.status||"validado",padronizadoEm:new Date().toISOString(),padronizadoPor:usuarioLogado.username,normalizacaoManual:true};
+
+ const btn=$("btn-salvar-antigo");btn.disabled=true;
+ try{
+  await setDoc(doc(db,"rotas",id),patch,{merge:true});
+  Object.assign(r,patch);
+  closeLegacyEditor();renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();
+  toast("Lançamento atualizado e padronizado.");
+ }catch(ex){console.error(ex);toast("Erro ao atualizar lançamento: "+ex.message,false)}finally{btn.disabled=false}
+});
+
+$("btn-exportar-antigos").addEventListener("click",()=>{
+ const data=JSON.stringify(rotas.filter(r=>r.versaoSchema!==2),null,2);
+ const blob=new Blob([data],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="systemdiarias-registros-antigos-backup.json";
+ a.click();
+ URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
