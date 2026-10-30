@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+html_code = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -12,9 +12,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
 @media(max-width:768px){input,select,textarea{font-size:16px!important}}
 .tab-active{background:#2563eb!important;color:white!important;border-color:#2563eb!important}
 
-/* REGRAS DE IMPRESSÃO LIMPA */
+/* REGRAS DE IMPRESSÃO LIMPA E EM PAISAGEM */
 @media print {
-  header, nav, #toast, .no-print, #auth-screen, #modal-senha { 
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  header, nav, #toast, .no-print, #auth-screen, #modal-senha, #modal-requisicoes { 
     display: none !important; 
   }
   body, main { 
@@ -34,12 +38,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
     border: none !important; 
     box-shadow: none !important; 
   }
-  .bloco-prestador {
-    page-break-inside: avoid;
-    break-inside: avoid;
+  .pagina-prestador {
+    page-break-after: always !important;
+    break-after: page !important;
+    padding-bottom: 20px;
+  }
+  .pagina-prestador:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
   table { 
     page-break-inside: auto; 
+    width: 100% !important;
   }
   tr { 
     page-break-inside: avoid; 
@@ -50,7 +60,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
 
-<!-- TELA DE AUTENTICAÇÃO COM LOGIN E CADASTRO -->
+<!-- TELA DE AUTENTICAÇÃO COM LOGIN, CADASTRO E BOTÃO REGISTRAR SERVIÇO -->
 <div id="auth-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
  <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
   <div class="text-center">
@@ -59,6 +69,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
    </div>
    <h1 class="text-xl font-black">SystemDiarias</h1>
    <p class="text-xs text-slate-500 mt-1">Gestão de serviços e pagamentos</p>
+  </div>
+
+  <!-- BOTÃO DE ENTRADA RÁPIDA / REGISTRAR SERVIÇO -->
+  <button type="button" id="btn-portal-registrar" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition">
+   <i class="fa-solid fa-clipboard-list text-base"></i> Registrar Serviço
+  </button>
+
+  <div class="flex items-center gap-2 my-2">
+   <div class="h-px bg-slate-200 flex-1"></div>
+   <span class="text-[11px] text-slate-400 font-semibold uppercase">ou acesse sua conta</span>
+   <div class="h-px bg-slate-200 flex-1"></div>
   </div>
 
   <div class="flex border rounded-xl p-1 bg-slate-100 text-xs font-bold">
@@ -128,6 +149,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
  </div>
 </div>
 
+<!-- MODAL DE SELEÇÃO DE REQUISIÇÕES PENDENTES PARA PRESTADORES -->
+<div id="modal-requisicoes" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4 hidden">
+ <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+  <div class="flex justify-between items-center border-b pb-3 shrink-0">
+   <div>
+    <h3 class="font-black text-base text-slate-800 flex items-center gap-2">
+     <i class="fa-solid fa-clipboard-list text-emerald-600"></i> Requisições Disponíveis para Registro
+    </h3>
+    <p class="text-xs text-slate-500">Selecione uma ordem aberta pelo gerente para realizar o lançamento da rota.</p>
+   </div>
+   <button id="btn-fechar-modal-req" type="button" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+  </div>
+  <div id="lista-requisicoes-pendentes-modal" class="divide-y overflow-y-auto space-y-2 pr-1"></div>
+ </div>
+</div>
+
 <!-- MODAL DE ALTERAÇÃO DE SENHA -->
 <div id="modal-senha" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
  <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
@@ -163,6 +200,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
   <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center gap-3">
    <div class="flex items-center gap-3"><i class="fa-solid fa-route text-blue-400 text-xl"></i><div><h1 class="font-extrabold">SystemDiarias</h1><p class="text-[10px] text-slate-400">Controle operacional e financeiro</p></div></div>
    <div class="flex items-center gap-3">
+    <button id="btn-header-requisicoes" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition">
+     <i class="fa-solid fa-list-check"></i> <span class="hidden sm:inline">Requisições Abertas</span>
+     <span id="badge-header-req-count" class="hidden px-1.5 py-0.2 bg-white text-emerald-800 rounded-full text-[10px] font-black">0</span>
+    </button>
     <div class="text-right"><b id="user-display-name" class="block text-xs"></b><span id="user-display-role" class="text-[10px] text-blue-300"></span></div>
     <button id="btn-abrir-senha" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white" title="Modificar Senha"><i class="fa-solid fa-key"></i></button>
     <button id="btn-logout" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white" title="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
@@ -191,43 +232,161 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
 
   <!-- ABA LANÇAMENTOS -->
   <section id="aba-lancamentos" class="tab-pane space-y-5">
+   <!-- BLOCO DE CRIAÇÃO DE REQUISIÇÃO (GERENTE / ADMIN) -->
+   <div id="bloco-criar-requisicao" class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 sm:p-5 shadow-sm hidden space-y-3">
+    <div class="flex justify-between items-center border-b border-indigo-100 pb-2">
+     <h3 class="font-black text-sm text-indigo-950 flex items-center gap-2">
+      <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> Nova Requisição de Serviço (Gerente / Admin)
+     </h3>
+     <span class="text-[11px] font-bold text-indigo-700 bg-white px-2.5 py-0.5 rounded-full border border-indigo-200">Abertura de Rota</span>
+    </div>
+    <form id="form-criar-requisicao" class="space-y-3">
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Data do Serviço</label>
+       <input type="date" id="req-data" required class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Local Inicial (Origem)</label>
+       <input type="text" id="req-origem" required placeholder="Ex.: Garagem Central - SP" class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Local Final (Destino)</label>
+       <input type="text" id="req-destino" required placeholder="Ex.: Unidade Campinas" class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+     </div>
+
+     <!-- SELEÇÃO OPCIONAL DOS INTEGRANTES DA EQUIPE -->
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-indigo-100">
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">
+        <i class="fa-solid fa-user-tag text-blue-600 mr-1"></i>Integrante 1 (Motorista / Sugerido) <span class="text-[10px] font-normal text-slate-400">(Opcional)</span>
+       </label>
+       <select id="req-integrante1" class="w-full border bg-slate-50 rounded-lg p-2.5 text-xs"></select>
+      </div>
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">
+        <i class="fa-solid fa-user-shield text-emerald-600 mr-1"></i>Integrante 2 (Segurança / Sugerido) <span class="text-[10px] font-normal text-slate-400">(Opcional)</span>
+       </label>
+       <select id="req-integrante2" class="w-full border bg-slate-50 rounded-lg p-2.5 text-xs"></select>
+      </div>
+     </div>
+
+     <div class="flex justify-end pt-1">
+      <button type="submit" id="btn-salvar-requisicao" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 transition">
+       <i class="fa-solid fa-paper-plane"></i> Abrir Requisição
+      </button>
+     </div>
+    </form>
+   </div>
+
+   <!-- CARROUSSEL / LISTAGEM RÁPIDA DE REQUISIÇÕES EM ABERTO -->
+   <div id="banner-requisicoes-abertas" class="bg-amber-50 border border-amber-300 rounded-2xl p-4 space-y-3 hidden">
+    <div class="flex justify-between items-center">
+     <h4 class="font-extrabold text-xs text-amber-950 flex items-center gap-1.5 uppercase tracking-wider">
+      <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Requisições Aguardando Registro de Serviço
+     </h4>
+     <span id="badge-total-req-banner" class="text-[11px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">0 em aberto</span>
+    </div>
+    <div id="lista-requisicoes-banner" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs"></div>
+   </div>
+
    <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 flex flex-wrap gap-3 justify-between">
     <b><i class="fa-solid fa-calculator text-blue-600 mr-1"></i> Parâmetros aplicados a novos serviços</b><span>Diária: <b id="top-cfg-diaria">R$ 190,00</b></span><span>Adicional acima de 5h30: <b id="top-cfg-adic">R$ 30,00</b></span><span>KM: <b id="top-cfg-km">R$ 0,68/km</b></span><span>Aluguel: <b id="top-cfg-aluguel">R$ 60,00</b></span>
    </div>
+
    <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
-    <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3 mb-4"><h2 class="font-extrabold"><i class="fa-solid fa-truck-moving text-blue-600 mr-2"></i>Novo registro de serviço</h2><span id="badge-ciclo" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">Informe a data</span></div>
-    <form id="form-rota" class="space-y-4"><input type="hidden" id="rota-edit-id"><div id="modo-edicao-rota" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"><b>Modo de edição de lançamento.</b> Ao salvar, os valores congelados deste serviço serão atualizados usando os parâmetros históricos salvos nele. <button type="button" id="btn-cancelar-edicao-rota" class="ml-2 underline font-bold">Cancelar edição</button></div>
-     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <div><label class="block text-xs font-bold mb-1">Data do serviço</label><input type="date" id="dataRota" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+    <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3 mb-4">
+     <div>
+      <h2 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-truck-moving text-blue-600"></i>Registro e Execução de Serviço</h2>
+      <p id="label-origem-destino-rota" class="text-xs text-slate-500 mt-0.5">Selecione uma requisição acima ou preencha os dados do serviço.</p>
+     </div>
+     <span id="badge-ciclo" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">Informe a data</span>
+    </div>
+
+    <form id="form-rota" class="space-y-4">
+     <input type="hidden" id="rota-edit-id">
+     <input type="hidden" id="rota-modo-requisicao" value="false">
+
+     <div id="modo-edicao-rota" class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+      <b>Modo de edição/registro de lançamento.</b> Ao salvar, os valores congelados deste serviço serão atualizados. 
+      <button type="button" id="btn-cancelar-edicao-rota" class="ml-2 underline font-bold">Cancelar</button>
+     </div>
+
+     <!-- ITINERÁRIO (CAMPOS ORIGEM E DESTINO) -->
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Data do serviço</label>
+       <input type="date" id="dataRota" required class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Local Inicial (Origem)</label>
+       <input type="text" id="localInicio" required placeholder="Origem da rota" class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+      <div>
+       <label class="block text-xs font-bold mb-1 text-slate-700">Local Final (Destino)</label>
+       <input type="text" id="localFinal" required placeholder="Destino da rota" class="w-full border bg-white rounded-lg p-2.5 text-xs">
+      </div>
+     </div>
+
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="block text-xs font-bold mb-1">Hora inicial</label><input type="time" id="horaInicio" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
       <div><label class="block text-xs font-bold mb-1">Hora final</label><input type="time" id="horaFinal" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
      </div>
+
      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div><label class="block text-xs font-bold mb-1">Veículo</label><select id="veiculoSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select><p id="info-proprietario" class="text-[11px] text-slate-500 mt-1"></p></div>
       <div><label class="block text-xs font-bold mb-1">KM total da rota</label><input type="number" step="0.1" min="0" id="kmTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
       <div><label class="block text-xs font-bold mb-1">Pedágios pagos (R$)</label><input type="number" step="0.01" min="0" id="pedagioTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
      </div>
+
      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="block text-xs font-bold mb-1">Motorista</label><select id="motoristaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
       <div><label class="block text-xs font-bold mb-1">Segurança</label><select id="segurancaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
      </div>
+
      <div class="bg-slate-50 border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
       <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Duração</span><b id="calc-duracao" class="text-lg">0h 00m</b><p id="calc-adicional" class="text-[11px] text-slate-500">Sem adicional</p></div>
       <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento motorista</span><b id="calc-motorista" class="text-lg text-blue-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
       <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento segurança</span><b id="calc-seguranca" class="text-lg text-emerald-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
      </div>
+
      <div id="preview-veiculo" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"></div>
-     <div class="flex flex-col sm:flex-row gap-3"><button id="btn-submit-rota" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"><i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores</button><button id="btn-limpar" type="button" class="px-5 py-3 border rounded-xl font-semibold">Limpar</button></div>
-     <p class="text-[11px] text-slate-400">Novos serviços entram aguardando aprovação do Gerente/Admin antes do fechamento oficial.</p>
+     <div class="flex flex-col sm:flex-row gap-3">
+      <button id="btn-submit-rota" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+       <i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores
+      </button>
+      <button id="btn-limpar" type="button" class="px-5 py-3 border rounded-xl font-semibold hover:bg-slate-50">Limpar</button>
+     </div>
+     <p class="text-[11px] text-slate-400">Serviços registrados entram em validação antes do fechamento oficial.</p>
     </form>
    </div>
+
    <div class="bg-white rounded-2xl border p-4 shadow-sm">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold"><i class="fa-solid fa-list mr-2 text-slate-500"></i>Histórico de serviços</h2><span id="contador-rotas" class="text-xs bg-slate-100 rounded-full px-3 py-1">0</span></div>
-    <div class="overflow-x-auto"><table class="w-full text-xs text-left min-w-[850px]"><thead class="text-slate-500 uppercase border-b"><tr><th class="p-3">Data</th><th class="p-3">Equipe</th><th class="p-3">Veículo</th><th class="p-3">Proprietário</th><th class="p-3 text-right">Total do serviço</th><th class="p-3">Status</th><th class="p-3">Ação</th></tr></thead><tbody id="tabela-rotas" class="divide-y"></tbody></table></div>
+    <div class="flex justify-between items-center mb-3">
+     <h2 class="font-bold"><i class="fa-solid fa-list mr-2 text-slate-500"></i>Histórico de serviços</h2>
+     <span id="contador-rotas" class="text-xs bg-slate-100 rounded-full px-3 py-1 font-semibold">0</span>
+    </div>
+    <div class="overflow-x-auto">
+     <table class="w-full text-xs text-left min-w-[900px]">
+      <thead class="text-slate-500 uppercase border-b bg-slate-50">
+       <tr>
+        <th class="p-3">Data / Itinerário</th>
+        <th class="p-3">Equipe</th>
+        <th class="p-3">Veículo</th>
+        <th class="p-3">Proprietário</th>
+        <th class="p-3 text-right">Total do serviço</th>
+        <th class="p-3">Status</th>
+        <th class="p-3 text-center">Ação</th>
+       </tr>
+      </thead>
+      <tbody id="tabela-rotas" class="divide-y"></tbody>
+     </table>
+    </div>
    </div>
   </section>
 
-  <!-- ABA RELATÓRIO DE PAGAMENTO (PADRONIZADO NOMINAL) -->
+  <!-- ABA RELATÓRIO DE PAGAMENTO (PADRONIZADO EM TABELA / PAISAGEM / 1 POR PÁGINA) -->
   <section id="aba-relatorios" class="tab-pane hidden space-y-4">
    <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm no-print">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4 mb-4">
@@ -235,10 +394,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
       <h2 class="font-black text-lg text-slate-800 flex items-center gap-2">
        <i class="fa-solid fa-file-invoice-dollar text-blue-600"></i> Relatório de Pagamentos
       </h2>
-      <p class="text-xs text-slate-500">Demonstrativo nominal de serviços validados por prestador.</p>
+      <p class="text-xs text-slate-500">Demonstrativo padronizado em tabela horizontal (Paisagem), com quebra de página por prestador.</p>
      </div>
      <button id="btn-imprimir-relatorio" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow transition">
-      <i class="fa-solid fa-print"></i> Imprimir Pagamentos
+      <i class="fa-solid fa-print"></i> Imprimir Pagamentos (Paisagem)
      </button>
     </div>
 
@@ -273,14 +432,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
 
    <div class="bg-white rounded-2xl border p-4 shadow-sm">
     <div class="overflow-x-auto">
-     <table class="w-full text-xs text-left min-w-[950px]">
+     <table class="w-full text-xs text-left min-w-[1000px]">
       <thead class="bg-slate-50 uppercase text-slate-500 border-b">
        <tr>
         <th class="p-3">Data / Equipe</th>
+        <th class="p-3">Itinerário (Origem ➔ Destino)</th>
         <th class="p-3">Veículo / KM</th>
         <th class="p-3 text-right">Valor Total</th>
-        <th class="p-3 text-center">Status Atual</th>
-        <th class="p-3" style="min-width: 200px;">Observação do Gerente (Obs.)</th>
+        <th class="p-3 text-center">Status</th>
+        <th class="p-3" style="min-width: 200px;">Obs. Gerente</th>
         <th class="p-3 text-center">Ações de Validação</th>
        </tr>
       </thead>
@@ -293,7 +453,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textar
   <!-- ABA EXTRATOS -->
   <section id="aba-fechamentos" class="tab-pane hidden space-y-4">
    <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
-    <div class="flex flex-col sm:flex-row justify-between gap-3 border-b pb-4 mb-4"><div><h2 class="font-extrabold text-lg">Extratos de pagamento</h2><p class="text-xs text-slate-500">Demonstrativo contábil de receitas, reembolsos e saldo final.</p></div><div class="flex flex-wrap gap-2"><div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ciclo de pagamento</label><select id="filtro-ciclo" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div><div id="wrapper-filtro-pessoa" class="hidden"><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Destinatário</label><select id="filtro-pessoa" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div></div></div>
+    <div class="flex flex-col sm:flex-row justify-between gap-3 border-b pb-4 mb-4">
+     <div>
+      <h2 class="font-extrabold text-lg">Extratos de pagamento</h2>
+      <p class="text-xs text-slate-500">Demonstrativo contábil de receitas, reembolsos e saldo final discriminado por itinerário.</p>
+     </div>
+     <div class="flex flex-wrap gap-2">
+      <div>
+       <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ciclo de pagamento</label>
+       <select id="filtro-ciclo" class="border bg-slate-50 rounded-lg p-2 text-xs"></select>
+      </div>
+      <div id="wrapper-filtro-pessoa" class="hidden">
+       <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Destinatário</label>
+       <select id="filtro-pessoa" class="border bg-slate-50 rounded-lg p-2 text-xs"></select>
+      </div>
+     </div>
+    </div>
     <div id="box-extrato" class="space-y-4"></div>
    </div>
   </section>
@@ -401,11 +576,6 @@ function toast(msg,ok=true){
 function username(v){return (v||"").toLowerCase().trim().split("@")[0].trim()}
 function getPrestador(id){return prestadores.find(p=>p.id===id)}
 function getVeiculo(id){return veiculos.find(v=>v.id===id)}
-function getVeiculoByPlaca(placa){
- if(!placa)return null;
- const clean=String(placa).toUpperCase().replace(/[^A-Z0-9]/g,"");
- return veiculos.find(v=>String(v.placa).toUpperCase().replace(/[^A-Z0-9]/g,"")===clean);
-}
 
 function ciclo(data){
  if(!data)return {id:"",label:""};
@@ -443,10 +613,17 @@ function newCalc(){
 
 function populateSelects(){
  const mot=prestadores.filter(p=>p.funcoes?.includes("motorista")),seg=prestadores.filter(p=>p.funcoes?.includes("seguranca"));
+ const optVazia = '<option value="">-- Não Definido / Em Aberto --</option>';
+
  $("motoristaSelect").innerHTML=mot.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
  $("segurancaSelect").innerHTML=seg.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
  $("veiculoSelect").innerHTML=veiculos.map(v=>`<option value="${esc(v.id)}">${esc(v.placa)} — ${esc(v.modelo)}</option>`).join("");
  $("v-proprietario").innerHTML=prestadores.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)} (${esc(p.codigo)} — ${esc(p.apelido)})</option>`).join("");
+ 
+ // SELECTS OPCIONAIS DO FORMULÁRIO DE REQUISIÇÃO (GERENTE)
+ $("req-integrante1").innerHTML = optVazia + prestadores.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} (${esc(p.nome)}) — ${esc(p.codigo)}</option>`).join("");
+ $("req-integrante2").innerHTML = optVazia + prestadores.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} (${esc(p.nome)}) — ${esc(p.codigo)}</option>`).join("");
+
  renderCadastros();newCalc();
 }
 
@@ -520,7 +697,7 @@ async function loadAll(){
   if(p.length)prestadores=p.filter(x=>!x.mergedInto);else {prestadores=defaultPrestadores();for(const x of prestadores)await setDoc(doc(db,"prestadores",x.id),x)}
   if(v.length)veiculos=v;else {veiculos=defaultVeiculos();for(const x of veiculos)await setDoc(doc(db,"veiculos",x.id),x)}
   const cfg=c.find(x=>x.id==="parametros");if(cfg)parametros={diaria:n(cfg.diaria),adicional:n(cfg.adicional),km:n(cfg.km),aluguel:n(cfg.aluguel)};
-  setCfgInputs();populateSelects();renderRoutes();renderValidacao();populateCycle();renderExtract();renderRelatorioPagamentos();renderLegacy();
+  setCfgInputs();populateSelects();renderRoutes();renderValidacao();renderRequisicoes();populateCycle();renderExtract();renderRelatorioPagamentos();renderLegacy();
  }catch(e){console.error(e);toast("Não foi possível carregar dados do Firebase: "+e.message,false)}
 }
 
@@ -536,7 +713,8 @@ function defaultVeiculos(){return []}
 function isAdmin(){return usuarioLogado?.role==="admin"}
 function isGerente(){return usuarioLogado?.role==="gerente"||usuarioLogado?.role==="admin"}
 
-function badgeStatus(st){
+function badgeStatus(st, reqSt){
+ if(reqSt==="aguardando_registro") return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-300"><i class="fa-solid fa-clock-rotate-left mr-1"></i>REQUISIÇÃO ABERTA</span>';
  const status=st||"pendente_validacao";
  if(status==="validado")return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300"><i class="fa-solid fa-check mr-1"></i>VALIDADO</span>';
  if(status==="pendente_correcao")return '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300"><i class="fa-solid fa-pen mr-1"></i>CORRIGIR</span>';
@@ -546,11 +724,115 @@ function badgeStatus(st){
 
 function visibleRoutes(){
  if(isGerente())return rotas;
- const p=prestadores.find(x=>x.usuario===usuarioLogado.username);
- return rotas.filter(r=>r.motoristaId===p?.id||r.segurancaId===p?.id||r.pagamentos?.some(x=>x.prestadorId===p?.id)||r.motorista===usuarioLogado.apelido||r.seguranca===usuarioLogado.apelido);
+ const p=prestadores.find(x=>x.usuario===usuarioLogado?.username);
+ return rotas.filter(r=>r.statusRequisicao==="aguardando_registro"||r.motoristaId===p?.id||r.segurancaId===p?.id||r.integrante1Id===p?.id||r.integrante2Id===p?.id||r.pagamentos?.some(x=>x.prestadorId===p?.id)||r.motorista===usuarioLogado?.apelido||r.seguranca===usuarioLogado?.apelido);
 }
 
 function routeTotal(r){if(r.versaoSchema===2)return n(r.totalRota);return n(r.subMotorista)+n(r.subSeguranca)}
+
+// GESTÃO E RENDERIZAÇÃO DE REQUISIÇÕES
+function renderRequisicoes(){
+ const pendentes = rotas.filter(r=>r.statusRequisicao==="aguardando_registro").sort((a,b)=>(b.data||"").localeCompare(a.data||""));
+ 
+ const badgeHeader = $("badge-header-req-count");
+ if(pendentes.length>0){
+  badgeHeader.textContent=pendentes.length;
+  badgeHeader.classList.remove("hidden");
+ } else {
+  badgeHeader.classList.add("hidden");
+ }
+
+ const banner = $("banner-requisicoes-abertas");
+ const bannerList = $("lista-requisicoes-banner");
+ const modalList = $("lista-requisicoes-pendentes-modal");
+
+ if(pendentes.length>0){
+  banner.classList.remove("hidden");
+  $("badge-total-req-banner").textContent = `${pendentes.length} em aberto`;
+
+  const cardsHtml = pendentes.map(req=>{
+   const equipeSugerida = [req.integrante1Nome, req.integrante2Nome].filter(Boolean).join(" / ");
+   return `
+   <div class="bg-white border border-amber-200 rounded-xl p-3 shadow-sm flex flex-col justify-between gap-2">
+    <div>
+     <div class="flex items-center justify-between text-[11px] text-slate-500 font-bold mb-1">
+      <span><i class="fa-regular fa-calendar mr-1"></i>${esc(fmtDate(req.data))}</span>
+      <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-black text-[10px]">Ordem Gerente</span>
+     </div>
+     <div class="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs">
+      <i class="fa-solid fa-location-dot text-emerald-600"></i> ${esc(req.localInicio||"—")}
+     </div>
+     <div class="text-slate-400 text-[10px] ml-3.5 leading-none">↓</div>
+     <div class="font-extrabold text-slate-800 flex items-center gap-1.5 text-xs">
+      <i class="fa-solid fa-flag-checkered text-rose-600"></i> ${esc(req.localFinal||"—")}
+     </div>
+     ${equipeSugerida ? `<div class="mt-2 text-[11px] bg-slate-50 p-1.5 rounded-lg border text-slate-600"><b>Equipe pré-definida:</b> ${esc(equipeSugerida)}</div>` : ''}
+    </div>
+    <button type="button" data-atender-requisicao="${esc(req.id)}" class="w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 transition">
+     <i class="fa-solid fa-pen-clip"></i> Registrar Serviço
+    </button>
+   </div>
+  `;
+  }).join("");
+
+  bannerList.innerHTML = cardsHtml;
+  modalList.innerHTML = cardsHtml;
+ } else {
+  banner.classList.add("hidden");
+  bannerList.innerHTML = "";
+  modalList.innerHTML = `<div class="p-8 text-center text-slate-400 font-semibold"><i class="fa-solid fa-circle-check text-2xl text-emerald-500 mb-2 block"></i>Nenhuma requisição aguardando registro no momento.</div>`;
+ }
+}
+
+function iniciarRegistroRequisicao(id){
+ const req = rotas.find(r=>r.id===id);
+ if(!req) return;
+
+ $("modal-requisicoes").classList.add("hidden");
+ document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("tab-active"));
+ document.querySelector('[data-tab="lancamentos"]').classList.add("tab-active");
+ document.querySelectorAll(".tab-pane").forEach(x=>x.classList.add("hidden"));
+ $("aba-lancamentos").classList.remove("hidden");
+
+ $("rota-edit-id").value = req.id;
+ $("rota-modo-requisicao").value = "true";
+
+ $("dataRota").value = req.data||"";
+ $("dataRota").readOnly = true;
+ $("dataRota").classList.add("bg-slate-100", "cursor-not-allowed");
+
+ $("localInicio").value = req.localInicio||"";
+ $("localInicio").readOnly = true;
+ $("localInicio").classList.add("bg-slate-100", "cursor-not-allowed");
+
+ $("localFinal").value = req.localFinal||"";
+ $("localFinal").readOnly = true;
+ $("localFinal").classList.add("bg-slate-100", "cursor-not-allowed");
+
+ $("horaInicio").value = req.horaInicio||"";
+ $("horaFinal").value = req.horaFinal||"";
+ $("kmTotal").value = req.km||"0";
+ $("pedagioTotal").value = req.pedagio||"0";
+
+ populateSelects();
+ if(req.veiculoId) $("veiculoSelect").value = req.veiculoId;
+
+ // CARREGA AUTOMATICAMENTE OS INTEGRANTES PRÉ-SELECIONADOS PELO GERENTE
+ if(req.integrante1Id || req.motoristaId) {
+  $("motoristaSelect").value = req.integrante1Id || req.motoristaId;
+ }
+ if(req.integrante2Id || req.segurancaId) {
+  $("segurancaSelect").value = req.integrante2Id || req.segurancaId;
+ }
+
+ $("label-origem-destino-rota").innerHTML = `<span class="text-indigo-700 font-bold"><i class="fa-solid fa-route mr-1"></i>${esc(req.localInicio)} ➔ ${esc(req.localFinal)}</span> (Itinerário fixado pelo Gerente)`;
+ $("modo-edicao-rota").classList.remove("hidden");
+ $("modo-edicao-rota").innerHTML = `<b>Registrando Execução da Requisição:</b> ${esc(req.localInicio)} ➔ ${esc(req.localFinal)} em ${esc(fmtDate(req.data))}. Preencha horários, veículo, KM e equipe. <button type="button" id="btn-cancelar-edicao-rota" class="ml-2 underline font-bold">Cancelar</button>`;
+ $("btn-submit-rota").innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>Concluir e Salvar Registro de Serviço';
+
+ $("form-rota").scrollIntoView({behavior:"smooth",block:"start"});
+ newCalc();
+}
 
 function renderRoutes(){
  const rows=visibleRoutes().sort((a,b)=>(b.data||"").localeCompare(a.data||""));
@@ -559,20 +841,38 @@ function renderRoutes(){
   const old=r.versaoSchema!==2;
   const owner=old?(r.proprietarioVeiculoNome||"Pendente/antigo"):(r.proprietarioNomeSnapshot||"—");
   const total=routeTotal(r);
+  const isReq=r.statusRequisicao==="aguardando_registro";
+  const itinerarioHtml = (r.localInicio||r.localFinal)
+    ? `<div class="text-[11px] font-semibold text-slate-700 mt-0.5"><i class="fa-solid fa-arrow-right text-[10px] text-blue-500 mr-1"></i>${esc(r.localInicio||"—")} ➔ ${esc(r.localFinal||"—")}</div>`
+    : `<div class="text-[10px] text-slate-400 italic">Itinerário não informado</div>`;
+
+  const equipeExibicao = isReq && (r.integrante1Nome || r.integrante2Nome)
+    ? `${esc(r.integrante1Nome||"—")}<br><span class="text-slate-500">Seg.: ${esc(r.integrante2Nome||"—")}</span>`
+    : `${esc(r.motoristaNomeSnapshot||r.motorista||"—")}<br><span class="text-slate-500">Seg.: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</span>`;
+
   return `<tr>
-   <td class="p-3"><div class="font-semibold">${esc(fmtDate(r.data))}</div>${(isAdmin()||isGerente())?`<button type="button" class="mt-2 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-white font-bold whitespace-nowrap text-[11px]" ${old?`data-edit-legacy="${esc(r.id)}"`:`data-edit-r="${esc(r.id)}"`}><i class="fa-solid fa-pen-to-square"></i> Editar</button>`:""}</td>
-   <td class="p-3">${esc(r.motoristaNomeSnapshot||r.motorista||"—")}<br><span class="text-slate-500">Seg.: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</span></td>
+   <td class="p-3">
+    <div class="font-bold text-slate-900">${esc(fmtDate(r.data))}</div>
+    ${itinerarioHtml}
+    ${isReq 
+      ? `<button type="button" class="mt-2 inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-white font-bold whitespace-nowrap text-[11px]" data-atender-requisicao="${esc(r.id)}"><i class="fa-solid fa-pen-clip"></i> Registrar</button>`
+      : (isAdmin()||isGerente())
+        ? `<button type="button" class="mt-2 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-white font-bold whitespace-nowrap text-[11px]" ${old?`data-edit-legacy="${esc(r.id)}"`:`data-edit-r="${esc(r.id)}"`}><i class="fa-solid fa-pen-to-square"></i> Editar</button>`
+        : ""
+    }
+   </td>
+   <td class="p-3">${equipeExibicao}</td>
    <td class="p-3">${esc(r.placa||"—")}<br>${esc(r.modeloVeiculoSnapshot||"")}</td>
    <td class="p-3">${esc(owner)}</td>
-   <td class="p-3 text-right font-bold">${old&&!(r.subMotorista||r.subSeguranca)?`<span class="text-amber-700">Pendente</span>`:brl(total)}</td>
-   <td class="p-3">${badgeStatus(r.status)}${r.obsValidacao?`<div class="text-[10px] text-slate-500 mt-1 italic">Obs: ${esc(r.obsValidacao)}</div>`:""}</td>
-   <td class="p-3">${isAdmin()?`<button class="text-rose-600 hover:text-rose-800" data-del-r="${esc(r.id)}" title="Excluir rota"><i class="fa-solid fa-trash"></i></button>`:"—"}</td>
+   <td class="p-3 text-right font-bold">${isReq ? '<span class="text-indigo-600 font-semibold italic">Aguardando registro</span>' : (old&&!(r.subMotorista||r.subSeguranca)) ? `<span class="text-amber-700">Pendente</span>` : brl(total)}</td>
+   <td class="p-3">${badgeStatus(r.status, r.statusRequisicao)}${r.obsValidacao?`<div class="text-[10px] text-slate-500 mt-1 italic">Obs: ${esc(r.obsValidacao)}</div>`:""}</td>
+   <td class="p-3 text-center">${isAdmin()?`<button class="text-rose-600 hover:text-rose-800" data-del-r="${esc(r.id)}" title="Excluir rota"><i class="fa-solid fa-trash"></i></button>`:"—"}</td>
   </tr>`;
  }).join("")||`<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum serviço encontrado.</td></tr>`;
 }
 
 function renderValidacao(){
- const pendentesCount=rotas.filter(r=>!r.status||r.status==="pendente_validacao"||r.status==="pendente_correcao").length;
+ const pendentesCount=rotas.filter(r=>r.statusRequisicao!=="aguardando_registro" && (!r.status||r.status==="pendente_validacao"||r.status==="pendente_correcao")).length;
  const badgeEl=$("badge-validacao-count");
  if(pendentesCount>0){
   badgeEl.textContent=pendentesCount;
@@ -582,6 +882,7 @@ function renderValidacao(){
  }
 
  const filtradas = rotas.filter(r=>{
+  if(r.statusRequisicao==="aguardando_registro") return false;
   if(!filtroValidacaoPendentes) return true;
   return !r.status || r.status==="pendente_validacao" || r.status==="pendente_correcao";
  }).sort((a,b)=>(b.data||"").localeCompare(a.data||""));
@@ -596,11 +897,16 @@ function renderValidacao(){
     <div class="text-slate-500 text-[11px]">Seg: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</div>
    </td>
    <td class="p-3">
+    <div class="font-extrabold text-slate-800 text-xs">${esc(r.localInicio||"—")}</div>
+    <div class="text-slate-400 text-[10px] leading-tight">➔ destino</div>
+    <div class="font-extrabold text-blue-700 text-xs">${esc(r.localFinal||"—")}</div>
+   </td>
+   <td class="p-3">
     <span class="font-mono font-bold">${esc(r.placa||"—")}</span> <span class="text-slate-500">(${n(r.km).toFixed(1)} km)</span>
     <div class="text-[11px] text-slate-500">Prop.: ${esc(owner)}</div>
    </td>
    <td class="p-3 text-right font-black text-slate-800">${brl(total)}</td>
-   <td class="p-3 text-center">${badgeStatus(r.status)}</td>
+   <td class="p-3 text-center">${badgeStatus(r.status, r.statusRequisicao)}</td>
    <td class="p-3">
     <input type="text" id="obs-val-${esc(r.id)}" value="${esc(r.obsValidacao||"")}" placeholder="Digite uma observação..." class="w-full border rounded-lg p-2 text-xs bg-slate-50 focus:bg-white">
    </td>
@@ -618,7 +924,7 @@ function renderValidacao(){
     </div>
    </td>
   </tr>`;
- }).join("")||`<tr><td colspan="6" class="p-8 text-center text-slate-400 font-semibold">Nenhum serviço pendente de validação no momento.</td></tr>`;
+ }).join("")||`<tr><td colspan="7" class="p-8 text-center text-slate-400 font-semibold">Nenhum serviço pendente de validação no momento.</td></tr>`;
 }
 
 document.addEventListener("click",async e=>{
@@ -744,10 +1050,7 @@ function populateCycle(){
  }
 }
 
-// =========================================================================
-// RENDERIZAÇÃO DO RELATÓRIO DE PAGAMENTO (PADRONIZADO NOMINAL)
-// REGRA: Nome do Prestador -> Relação de Serviços -> Total por Prestador -> Total Geral
-// =========================================================================
+// RENDERIZAÇÃO DO RELATÓRIO DE PAGAMENTO (PADRONIZADO EM TABELA / PAISAGEM / 1 POR PÁGINA)
 function renderRelatorioPagamentos(){
  if(!isGerente()) return;
  const box = $("relatorio-conteudo");
@@ -764,17 +1067,20 @@ function renderRelatorioPagamentos(){
 
  for(const r of rotas){
   if((r.cicloId||r.dataPagamento) !== cicloSelecionado) continue;
-  
-  // FILTRO OBRIGATÓRIO: APENAS SERVIÇOS COM STATUS 'validado' (CORRETO)
+  if(r.statusRequisicao === "aguardando_registro") continue;
   if(r.status !== "validado") continue;
 
   const pagamentos = paymentsForRoute(r);
   for(const p of pagamentos){
    const key = p.prestadorId ? ("p:" + p.prestadorId) : ("legacy:" + p.tipo + ":" + p.apelido);
-   
    if(prestadorFiltro !== "TODOS" && key !== prestadorFiltro) continue;
 
-   const valorBrutoServico = n(p.diaria) + n(p.adicional) + n(p.aluguel) + n(p.km) + n(p.pedagio);
+   const vDiaria = n(p.diaria);
+   const vAdicional = n(p.adicional);
+   const vAluguel = n(p.aluguel);
+   const vKm = n(p.km);
+   const vPedagio = n(p.pedagio);
+   const valorTotalServico = vDiaria + vAdicional + vAluguel + vKm + vPedagio;
 
    if(!gruposPorPrestador.has(key)){
     const prestadorObj = allPpl.find(x => x.key === key);
@@ -783,22 +1089,46 @@ function renderRelatorioPagamentos(){
      nome: p.prestadorNome || p.apelido,
      codigo: p.codigo || (prestadorObj ? prestadorObj.codigo : "—"),
      itens: [],
-     totalPrestador: 0
+     totDiaria: 0,
+     totAdicional: 0,
+     totAluguel: 0,
+     totKm: 0,
+     totPedagio: 0,
+     totalMinutos: 0,
+     totalGeralPrestador: 0
     });
    }
 
    const grupo = gruposPorPrestador.get(key);
+   const mins = n(r.minutosDuracao) || 0;
    grupo.itens.push({
     rota: r,
     pagamento: p,
-    valorBruto: valorBrutoServico
+    data: r.data,
+    origem: r.localInicio || "—",
+    destino: r.localFinal || "—",
+    diaria: vDiaria,
+    adicional: vAdicional,
+    aluguel: vAluguel,
+    reembolsokm: vKm,
+    pedagio: vPedagio,
+    tempoTotalStr: r.duracao || duration(mins),
+    tempoMinutos: mins,
+    totalLinha: valorTotalServico
    });
-   grupo.totalPrestador += valorBrutoServico;
+
+   grupo.totDiaria += vDiaria;
+   grupo.totAdicional += vAdicional;
+   grupo.totAluguel += vAluguel;
+   grupo.totKm += vKm;
+   grupo.totPedagio += vPedagio;
+   grupo.totalMinutos += mins;
+   grupo.totalGeralPrestador += valorTotalServico;
   }
  }
 
  const listaGrupos = Array.from(gruposPorPrestador.values()).sort((a,b)=>a.nome.localeCompare(b.nome));
- const valorTotalPagoNoDia = listaGrupos.reduce((acc, cur) => acc + cur.totalPrestador, 0);
+ const valorTotalGeralLote = listaGrupos.reduce((acc, cur) => acc + cur.totalGeralPrestador, 0);
 
  if(listaGrupos.length === 0){
   box.innerHTML = '<div class="bg-white border rounded-2xl p-8 text-center text-slate-400 font-semibold shadow-sm">Nenhum serviço validado com status "Correto" encontrado para este filtro.</div>';
@@ -806,79 +1136,106 @@ function renderRelatorioPagamentos(){
  }
 
  box.innerHTML = `
- <div class="space-y-6">
-  <!-- CABEÇALHO DO RELATÓRIO -->
-  <div class="bg-white border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+ <div class="space-y-8">
+  <!-- CABEÇALHO GLOBAL DO RELATÓRIO (APARECE NO TOPO NA TELA) -->
+  <div class="bg-white border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
    <div>
     <span class="text-[10px] uppercase font-bold text-blue-600 tracking-wider">Folha de Pagamentos Validados</span>
-    <h3 class="text-xl font-black text-slate-900">Demonstrativo de Repasse por Prestador</h3>
-    <p class="text-xs text-slate-500 mt-0.5">Data / Ciclo de Pagamento: <b class="text-slate-800">${esc(cicloSelecionado)}</b></p>
+    <h3 class="text-xl font-black text-slate-900">Demonstrativo de Repasse Padronizado</h3>
+    <p class="text-xs text-slate-500 mt-0.5">Ciclo de Pagamento: <b class="text-slate-800">${esc(cicloSelecionado)}</b></p>
    </div>
    <div class="text-right">
-    <div class="text-[11px] font-bold text-slate-500 uppercase">Total a Ser Pago no Dia</div>
-    <div class="text-2xl font-black text-emerald-700">${brl(valorTotalPagoNoDia)}</div>
+    <div class="text-[11px] font-bold text-slate-500 uppercase">Total Geral do Ciclo</div>
+    <div class="text-2xl font-black text-emerald-700">${brl(valorTotalGeralLote)}</div>
    </div>
   </div>
 
-  <!-- ITERAÇÃO POR PRESTADOR: NOME -> RELAÇÃO -> TOTAL -->
+  <!-- UMA PÁGINA PARA CADA PRESTADOR (ORIENTAÇÃO PAISAGEM) -->
   ${listaGrupos.map(grupo => `
-   <div class="bloco-prestador bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-    <!-- NOME DO PRESTADOR -->
-    <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-2">
-     <h4 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
-      <i class="fa-solid fa-user-check text-blue-600"></i> ${esc(grupo.nome)}
-      <span class="text-xs font-mono font-bold text-slate-500">(${esc(grupo.codigo)})</span>
-     </h4>
-     <span class="text-xs text-slate-400 font-semibold">${grupo.itens.length} serviço(s) validados</span>
+   <div class="pagina-prestador bg-white border border-slate-300 rounded-2xl p-6 shadow-sm space-y-4">
+    <!-- NOME DO PRESTADOR NA PARTE SUPERIOR -->
+    <div class="border-b-2 border-slate-800 pb-3 flex justify-between items-end">
+     <div>
+      <span class="text-[10px] uppercase font-black text-blue-600 tracking-widest block">RELATÓRIO NOMINAL DE DIÁRIAS E SERVIÇOS</span>
+      <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+       <i class="fa-solid fa-user text-blue-600"></i> ${esc(grupo.nome)}
+       <span class="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">${esc(grupo.codigo)}</span>
+      </h2>
+     </div>
+     <div class="text-right text-xs text-slate-500">
+      <div>Data / Ciclo: <b class="text-slate-900">${esc(cicloSelecionado)}</b></div>
+      <div class="text-[11px]">${grupo.itens.length} rota(s) validada(s)</div>
+     </div>
     </div>
 
-    <!-- RELAÇÃO DE SERVIÇOS COM DETALHES -->
+    <!-- TABELA PADRONIZADA: |data|origem|destino|diaria|adicional|aluguel|reembolsokm|Pedagio|tempo total| -->
     <div class="overflow-x-auto">
-     <table class="w-full text-xs text-left min-w-[700px]">
-      <thead class="bg-slate-50 uppercase text-slate-500 border-b">
-       <tr>
-        <th class="p-2.5">Data</th>
-        <th class="p-2.5">Função / Veículo</th>
-        <th class="p-2.5">Composição do Pagamento</th>
-        <th class="p-2.5 text-right">Valor do Serviço</th>
+     <table class="w-full text-xs text-left border-collapse border border-slate-300">
+      <thead>
+       <tr class="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-300 text-[11px]">
+        <th class="p-2.5 border border-slate-300">Data</th>
+        <th class="p-2.5 border border-slate-300">Origem</th>
+        <th class="p-2.5 border border-slate-300">Destino</th>
+        <th class="p-2.5 border border-slate-300 text-right">Diária</th>
+        <th class="p-2.5 border border-slate-300 text-right">Adicional</th>
+        <th class="p-2.5 border border-slate-300 text-right">Aluguel</th>
+        <th class="p-2.5 border border-slate-300 text-right">Reembolso KM</th>
+        <th class="p-2.5 border border-slate-300 text-right">Pedágio</th>
+        <th class="p-2.5 border border-slate-300 text-center">Tempo Total</th>
        </tr>
       </thead>
-      <tbody class="divide-y divide-slate-100">
+      <tbody class="divide-y divide-slate-200">
        ${grupo.itens.map(item => `
-        <tr class="hover:bg-slate-50/50">
-         <td class="p-2.5 font-bold text-slate-800">${esc(fmtDate(item.rota.data))}</td>
-         <td class="p-2.5">
-          <span class="font-bold text-slate-700">${esc(item.pagamento.tipo==="veiculo"?"Proprietário do Veículo":item.pagamento.tipo==="motorista"?"Motorista":"Segurança")}</span><br>
-          <span class="text-slate-500 font-mono">${esc(item.rota.placa||"—")}</span> <span class="text-slate-400">(${n(item.rota.km).toFixed(1)} km)</span>
-         </td>
-         <td class="p-2.5 text-slate-600 text-[11px]">
-          Diária: <b>${brl(item.pagamento.diaria)}</b> | Adic: <b>${brl(item.pagamento.adicional)}</b> | Aluguel: <b>${brl(item.pagamento.aluguel)}</b> | KM: <b>${brl(item.pagamento.km)}</b> | Pedágio: <b>${brl(item.pagamento.pedagio)}</b>
-         </td>
-         <td class="p-2.5 text-right font-bold text-slate-900">${brl(item.valorBruto)}</td>
+        <tr class="hover:bg-slate-50">
+         <td class="p-2 border border-slate-300 font-bold whitespace-nowrap">${esc(fmtDate(item.data))}</td>
+         <td class="p-2 border border-slate-300 text-slate-700">${esc(item.origem)}</td>
+         <td class="p-2 border border-slate-300 text-slate-700 font-medium">${esc(item.destino)}</td>
+         <td class="p-2 border border-slate-300 text-right font-medium">${brl(item.diaria)}</td>
+         <td class="p-2 border border-slate-300 text-right font-medium">${brl(item.adicional)}</td>
+         <td class="p-2 border border-slate-300 text-right font-medium">${brl(item.aluguel)}</td>
+         <td class="p-2 border border-slate-300 text-right font-medium">${brl(item.reembolsokm)}</td>
+         <td class="p-2 border border-slate-300 text-right font-medium">${brl(item.pedagio)}</td>
+         <td class="p-2 border border-slate-300 text-center font-bold text-slate-700 whitespace-nowrap">${esc(item.tempoTotalStr)}</td>
         </tr>
        `).join("")}
       </tbody>
+      <tfoot>
+       <!-- TOTAL DE CADA COLUNA -->
+       <tr class="bg-slate-50 font-black text-slate-900 border-t-2 border-slate-400">
+        <td colspan="3" class="p-2.5 border border-slate-300 text-right uppercase tracking-wider text-[11px]">Total das Colunas:</td>
+        <td class="p-2.5 border border-slate-300 text-right text-blue-800">${brl(grupo.totDiaria)}</td>
+        <td class="p-2.5 border border-slate-300 text-right text-blue-800">${brl(grupo.totAdicional)}</td>
+        <td class="p-2.5 border border-slate-300 text-right text-blue-800">${brl(grupo.totAluguel)}</td>
+        <td class="p-2.5 border border-slate-300 text-right text-blue-800">${brl(grupo.totKm)}</td>
+        <td class="p-2.5 border border-slate-300 text-right text-blue-800">${brl(grupo.totPedagio)}</td>
+        <td class="p-2.5 border border-slate-300 text-center text-slate-800">${duration(grupo.totalMinutos)}</td>
+       </tr>
+      </tfoot>
      </table>
     </div>
 
-    <!-- TOTAL DO PRESTADOR -->
-    <div class="flex justify-between items-center pt-3 border-t border-slate-100 bg-slate-50/80 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl">
-     <span class="text-xs font-bold uppercase text-slate-600">Total a Pagar a ${esc(grupo.nome)}:</span>
-     <b class="text-base font-black text-blue-700">${brl(grupo.totalPrestador)}</b>
+    <!-- LOGO ABAIXO O TOTAL GERAL DO PRESTADOR -->
+    <div class="bg-slate-900 text-white rounded-xl p-4 flex justify-between items-center shadow-sm">
+     <div>
+      <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Total Consolidado a Pagar</span>
+      <h3 class="text-sm font-black text-white">${esc(grupo.nome)}</h3>
+     </div>
+     <div class="text-right">
+      <div class="text-2xl font-black text-emerald-400">${brl(grupo.totalGeralPrestador)}</div>
+     </div>
     </div>
    </div>
   `).join("")}
 
-  <!-- VALOR TOTAL A SER PAGO NO DIA (RODAPÉ FINAL) -->
-  <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+  ${listaGrupos.length > 1 ? `
+  <!-- RESUMO GERAL DO LOTE (SE HOUVER MAIS DE UM PRESTADOR NO FILTRO) -->
+  <div class="bg-blue-950 text-white rounded-2xl p-5 shadow flex justify-between items-center no-print">
    <div>
-    <h3 class="text-lg font-black uppercase tracking-wider">Valor Total a Ser Pago no Dia</h3>
-    <p class="text-xs text-slate-400 mt-0.5">Soma geral de todos os prestadores no ciclo <b>${esc(cicloSelecionado)}</b></p>
+    <span class="text-xs uppercase font-black text-blue-300 tracking-wider">Total Geral do Lote</span>
+    <h3 class="text-lg font-black">Soma de todos os prestadores validados</h3>
    </div>
-   <div class="text-right">
-    <div class="text-3xl font-black text-emerald-400">${brl(valorTotalPagoNoDia)}</div>
-   </div>
-  </div>
+   <div class="text-3xl font-black text-emerald-400">${brl(valorTotalGeralLote)}</div>
+  </div>` : ""}
  </div>
  `;
 }
@@ -900,6 +1257,7 @@ function renderExtract(){
  if(!cycle||!chosen){box.innerHTML='<p class="text-sm text-slate-400 text-center p-8">Selecione um ciclo e um destinatário com registros.</p>';return}
  const entries=[];
  for(const r of rotas){
+  if(r.statusRequisicao==="aguardando_registro") continue;
   if((r.cicloId||r.dataPagamento)!==cycle)continue;
   for(const p of paymentsForRoute(r)){
    const matches=chosen.key.startsWith("p:")?p.prestadorId===chosen.id:(p.tipo===chosen.tipo&&p.apelido===chosen.apelido);
@@ -975,7 +1333,7 @@ function renderExtract(){
   <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 shadow-sm"><span class="text-[11px] font-bold text-emerald-800 uppercase block">Total Geral a Pagar</span><b class="text-base text-emerald-900 font-black">${brl(totalGeral)}</b></div>
  </div>
 
- <div class="bg-white border rounded-xl overflow-x-auto"><table class="w-full min-w-[750px] text-xs text-left"><thead class="bg-slate-50 uppercase text-slate-500"><tr><th class="p-3">Data</th><th class="p-3">Serviço / função</th><th class="p-3">Status</th><th class="p-3">Valores congelados</th><th class="p-3 text-right">Total</th></tr></thead><tbody class="divide-y">${entries.map(({r,p})=>`<tr><td class="p-3">${esc(fmtDate(r.data))}</td><td class="p-3">${esc(p.tipo==="veiculo"?"Proprietário do veículo":p.tipo==="motorista"?"Motorista":p.tipo==="seguranca"?"Segurança":"Prestador")}<br><span class="text-slate-500">${esc(r.placa||"—")} • ${esc(r.horaInicio||"")}–${esc(r.horaFinal||"")}</span></td><td class="p-3">${badgeStatus(r.status)}</td><td class="p-3">Diária ${brl(p.diaria)} + adicional ${brl(p.adicional)} + aluguel ${brl(p.aluguel)} + KM ${brl(p.km)} + pedágio ${brl(p.pedagio)}</td><td class="p-3 text-right font-extrabold">${brl(p.total)}</td></tr>`).join("")||'<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum serviço registrado para este destinatário neste ciclo.</td></tr>'}</tbody></table></div>
+ <div class="bg-white border rounded-xl overflow-x-auto"><table class="w-full min-w-[850px] text-xs text-left"><thead class="bg-slate-50 uppercase text-slate-500"><tr><th class="p-3">Data / Itinerário</th><th class="p-3">Serviço / função</th><th class="p-3">Status</th><th class="p-3">Valores congelados</th><th class="p-3 text-right">Total</th></tr></thead><tbody class="divide-y">${entries.map(({r,p})=>`<tr><td class="p-3"><div class="font-bold">${esc(fmtDate(r.data))}</div><div class="text-[11px] text-blue-700 font-semibold">${esc(r.localInicio||"—")} ➔ ${esc(r.localFinal||"—")}</div></td><td class="p-3">${esc(p.tipo==="veiculo"?"Proprietário do veículo":p.tipo==="motorista"?"Motorista":p.tipo==="seguranca"?"Segurança":"Prestador")}<br><span class="text-slate-500">${esc(r.placa||"—")} • ${esc(r.horaInicio||"")}–${esc(r.horaFinal||"")}</span></td><td class="p-3">${badgeStatus(r.status, r.statusRequisicao)}</td><td class="p-3">Diária ${brl(p.diaria)} + adicional ${brl(p.adicional)} + aluguel ${brl(p.aluguel)} + KM ${brl(p.km)} + pedágio ${brl(p.pedagio)}</td><td class="p-3 text-right font-extrabold">${brl(p.total)}</td></tr>`).join("")||'<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum serviço registrado para este destinatário neste ciclo.</td></tr>'}</tbody></table></div>
  `;
 }
 
@@ -1024,6 +1382,29 @@ $("tab-auth-cadastro").addEventListener("click",()=>{
  $("login-erro").classList.add("hidden");
 });
 
+// BOTÃO REGISTRAR SERVIÇO NA TELA DE LOGIN
+let redirectAposLoginRequisicoes = false;
+$("btn-portal-registrar").addEventListener("click",()=>{
+ if(auth.currentUser){
+  $("auth-screen").classList.add("hidden");
+  $("app-container").classList.remove("hidden");
+  abrirModalRequisicoes();
+ } else {
+  redirectAposLoginRequisicoes = true;
+  $("tab-auth-login").click();
+  $("login-username").focus();
+  toast("Faça login para visualizar e registrar suas requisições de serviço.");
+ }
+});
+
+$("btn-header-requisicoes").addEventListener("click", abrirModalRequisicoes);
+$("btn-fechar-modal-req").addEventListener("click", ()=> $("modal-requisicoes").classList.add("hidden"));
+
+function abrirModalRequisicoes(){
+ renderRequisicoes();
+ $("modal-requisicoes").classList.remove("hidden");
+}
+
 $("form-login").addEventListener("submit",async e=>{
  e.preventDefault();
  const u=username($("login-username").value),err=$("login-erro"),btn=$("btn-login");
@@ -1031,6 +1412,10 @@ $("form-login").addEventListener("submit",async e=>{
  btn.disabled=true;
  try{
   await signInWithEmailAndPassword(auth,u+DOMINIO,$("login-senha").value);
+  if(redirectAposLoginRequisicoes){
+   redirectAposLoginRequisicoes = false;
+   setTimeout(abrirModalRequisicoes, 500);
+  }
  }catch(ex){
   err.textContent=`Falha no acesso para "${u}". Verifique usuário, senha ou cadastre-se.`;
   err.classList.remove("hidden");
@@ -1091,6 +1476,12 @@ $("form-cadastro").addEventListener("submit",async e=>{
 document.addEventListener("click",async e=>{
  const btnAprovar = e.target.closest("[data-aprovar-gerente]");
  const btnRecusar = e.target.closest("[data-recusar-gerente]");
+ const btnAtenderReq = e.target.closest("[data-atender-requisicao]");
+
+ if(btnAtenderReq){
+  iniciarRegistroRequisicao(btnAtenderReq.dataset.atenderRequisicao);
+  return;
+ }
  
  if(btnAprovar && isAdmin()){
   const id = btnAprovar.dataset.aprovarGerente;
@@ -1134,6 +1525,69 @@ document.addEventListener("click",async e=>{
    console.error(err);
    toast("Erro ao recusar solicitação: "+err.message,false);
   }
+ }
+});
+
+// ABERTURA DE NOVA REQUISIÇÃO (GERENTE / ADMIN) COM INTEGRANTES OPCIONAIS
+$("form-criar-requisicao").addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(!isGerente()) return;
+
+ const dt = $("req-data").value;
+ const ori = $("req-origem").value.trim();
+ const des = $("req-destino").value.trim();
+ const int1Id = $("req-integrante1").value;
+ const int2Id = $("req-integrante2").value;
+
+ if(!dt || !ori || !des){
+  toast("Preencha data, local inicial e local final para abrir a requisição.", false);
+  return;
+ }
+
+ const p1 = getPrestador(int1Id);
+ const p2 = getPrestador(int2Id);
+
+ const btn = $("btn-salvar-requisicao");
+ btn.disabled = true;
+
+ const cy = ciclo(dt);
+ const novaReq = {
+  data: dt,
+  localInicio: ori,
+  localFinal: des,
+  statusRequisicao: "aguardando_registro",
+  status: "pendente_validacao",
+  integrante1Id: p1 ? p1.id : "",
+  integrante1Nome: p1 ? (p1.apelido || p1.nome) : "",
+  integrante2Id: p2 ? p2.id : "",
+  integrante2Nome: p2 ? (p2.apelido || p2.nome) : "",
+  motoristaId: p1 ? p1.id : "",
+  segurancaId: p2 ? p2.id : "",
+  criadoPor: usuarioLogado.username,
+  criadoEm: new Date().toISOString(),
+  cicloId: cy.id,
+  dataPagamento: cy.label,
+  km: 0,
+  pedagio: 0,
+  totalRota: 0,
+  pagamentos: [],
+  horaInicio: "",
+  horaFinal: "",
+  versaoSchema: 2
+ };
+
+ try{
+  const ref = await addDoc(collection(db, "rotas"), novaReq);
+  rotas.push({id: ref.id, ...novaReq});
+  $("form-criar-requisicao").reset();
+  renderRequisicoes();
+  renderRoutes();
+  toast(`Requisição aberta com sucesso! Disponível para registro dos prestadores.`);
+ }catch(ex){
+  console.error(ex);
+  toast("Erro ao abrir requisição: "+ex.message, false);
+ }finally{
+  btn.disabled = false;
  }
 });
 
@@ -1192,6 +1646,7 @@ onAuthStateChanged(auth,async user=>{
  $("tab-cadastros-btn").classList.toggle("hidden",!isAdmin());
  $("tab-antigos-btn").classList.toggle("hidden",!isAdmin());
  $("wrapper-filtro-pessoa").classList.toggle("hidden",!isGerente());
+ $("bloco-criar-requisicao").classList.toggle("hidden",!isGerente());
 
  await loadAll();
 });
@@ -1212,21 +1667,53 @@ document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>
 ["dataRota","horaInicio","horaFinal","kmTotal","pedagioTotal","veiculoSelect"].forEach(id=>$(id).addEventListener("input",newCalc));
 
 function cancelRouteEdit(){
-  $("rota-edit-id").value="";$("modo-edicao-rota").classList.add("hidden");
+  $("rota-edit-id").value="";
+  $("rota-modo-requisicao").value="false";
+  $("modo-edicao-rota").classList.add("hidden");
+
+  $("dataRota").readOnly = false;
+  $("dataRota").classList.remove("bg-slate-100", "cursor-not-allowed");
+  $("localInicio").readOnly = false;
+  $("localInicio").classList.remove("bg-slate-100", "cursor-not-allowed");
+  $("localFinal").readOnly = false;
+  $("localFinal").classList.remove("bg-slate-100", "cursor-not-allowed");
+
+  $("label-origem-destino-rota").textContent = "Selecione uma requisição acima ou preencha os dados do serviço.";
   $("btn-submit-rota").innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores';
-  $("form-rota").reset();$("kmTotal").value="0";$("pedagioTotal").value="0";newCalc();
+  $("form-rota").reset();
+  $("kmTotal").value="0";
+  $("pedagioTotal").value="0";
+  newCalc();
 }
 
 function editRoute(id){
   const r=rotas.find(x=>x.id===id);if(!r)return;
   if(r.versaoSchema!==2){openLegacyEditor(id);return;}
-  populateSelects();$("rota-edit-id").value=r.id;$("dataRota").value=r.data||"";$("horaInicio").value=r.horaInicio||"";$("horaFinal").value=r.horaFinal||"";
+  populateSelects();
+  $("rota-edit-id").value=r.id;
+  $("rota-modo-requisicao").value="false";
+  $("dataRota").value=r.data||"";
+  $("localInicio").value=r.localInicio||"";
+  $("localFinal").value=r.localFinal||"";
+
+  $("dataRota").readOnly = false;
+  $("dataRota").classList.remove("bg-slate-100", "cursor-not-allowed");
+  $("localInicio").readOnly = false;
+  $("localInicio").classList.remove("bg-slate-100", "cursor-not-allowed");
+  $("localFinal").readOnly = false;
+  $("localFinal").classList.remove("bg-slate-100", "cursor-not-allowed");
+
+  $("horaInicio").value=r.horaInicio||"";$("horaFinal").value=r.horaFinal||"";
   $("veiculoSelect").value=r.veiculoId||"";$("motoristaSelect").value=r.motoristaId||"";$("segurancaSelect").value=r.segurancaId||"";
   $("kmTotal").value=Number(r.km||0);$("pedagioTotal").value=Number(r.pedagio||0);
-  $("modo-edicao-rota").classList.remove("hidden");$("btn-submit-rota").innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Salvar alterações do lançamento';
+  $("modo-edicao-rota").classList.remove("hidden");
+  $("modo-edicao-rota").innerHTML = `<b>Modo de edição de lançamento.</b> Ao salvar, os valores congelados deste serviço serão atualizados. <button type="button" id="btn-cancelar-edicao-rota" class="ml-2 underline font-bold">Cancelar edição</button>`;
+  $("btn-submit-rota").innerHTML='<i class="fa-solid fa-floppy-disk mr-2"></i>Salvar alterações do lançamento';
   $("form-rota").scrollIntoView({behavior:"smooth",block:"start"});newCalc();
 }
-$("btn-cancelar-edicao-rota").addEventListener("click",cancelRouteEdit);
+document.addEventListener("click",e=>{
+ if(e.target && e.target.id==="btn-cancelar-edicao-rota") cancelRouteEdit();
+});
 
 $("form-rota").addEventListener("submit",async e=>{
  e.preventDefault();if(!usuarioLogado)return;if(busy)return;
@@ -1245,10 +1732,16 @@ $("form-rota").addEventListener("submit",async e=>{
   const map=new Map();for(const p of [payMot,paySeg,payOwner]){const key=p.prestadorId;if(!map.has(key))map.set(key,{...p});else{const q=map.get(key);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(p[k]))*100)/100;q.tipo=q.tipo===p.tipo?q.tipo:[q.tipo,p.tipo].filter(Boolean).join("/");}}
   const payments=[...map.values()].map(p=>({...p,totalRotaItem:p.total}));
 
+  const localIni = $("localInicio").value.trim() || existing?.localInicio || "Não informado";
+  const localFim = $("localFinal").value.trim() || existing?.localFinal || "Não informado";
+
   const route={
    ...(existing||{}),
    versaoSchema:2,
    data:dt,
+   localInicio: localIni,
+   localFinal: localFim,
+   statusRequisicao: "registrado",
    horaInicio:$("horaInicio").value,
    horaFinal:$("horaFinal").value,
    duracao:duration(c.mins),
@@ -1283,20 +1776,22 @@ $("form-rota").addEventListener("submit",async e=>{
    status:existing?.status==="pendente_correcao"?"pendente_validacao":(existing?.status||"pendente_validacao"),
    obsValidacao:existing?.obsValidacao||"",
    updatedAt:new Date().toISOString(),
+   registradoPor:usuarioLogado.username,
+   registradoEm:new Date().toISOString(),
    ...(existing?{editadoPor:usuarioLogado.username,editadoEm:new Date().toISOString()}:{criadoPor:usuarioLogado.username,createdAt:new Date().toISOString()})
   };
 
   if(existing){
    await setDoc(doc(db,"rotas",existing.id),route,{merge:true});
    Object.assign(existing,route);
-   toast("Lançamento atualizado e reenviado para conferência.");
+   toast("Serviço registrado/atualizado com sucesso! Aguardando validação do gerente.");
   }else{
    const ref=await addDoc(collection(db,"rotas"),route);
    rotas.push({id:ref.id,...route});
    toast("Serviço gravado com sucesso! Aguardando validação do gerente.");
   }
 
-  cancelRouteEdit();populateSelects();renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();
+  cancelRouteEdit();populateSelects();renderRequisicoes();renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();
  }catch(ex){console.error(ex);toast((existing?"Erro ao atualizar":"Erro ao gravar")+" no Firebase: "+ex.message,false)}finally{busy=false;$("btn-submit-rota").disabled=false}
 });
 
@@ -1375,7 +1870,7 @@ document.addEventListener("click",async e=>{
  if(er&&(isAdmin()||isGerente())){editRoute(er.dataset.editR);return}
  if(bp&&isAdmin()){const id=bp.dataset.delP;if(!confirm("Excluir cadastro do prestador?"))return;try{await deleteDoc(doc(db,"prestadores",id));prestadores=prestadores.filter(p=>p.id!==id);populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();toast("Cadastro excluído.")}catch(ex){toast(ex.message,false)}}
  if(bv&&isAdmin()){const id=bv.dataset.delV;if(!confirm("Excluir cadastro do veículo?"))return;try{await deleteDoc(doc(db,"veiculos",id));veiculos=veiculos.filter(v=>v.id!==id);populateSelects();toast("Veículo excluído.")}catch(ex){toast(ex.message,false)}}
- if(br&&isAdmin()){const id=br.dataset.delR;if(!confirm("Excluir este serviço?"))return;try{await deleteDoc(doc(db,"rotas",id));rotas=rotas.filter(r=>r.id!==id);renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();toast("Registro excluído.")}catch(ex){toast("Erro ao excluir: "+ex.message,false)}}
+ if(br&&isAdmin()){const id=br.dataset.delR;if(!confirm("Excluir este serviço?"))return;try{await deleteDoc(doc(db,"rotas",id));rotas=rotas.filter(r=>r.id!==id);renderRequisicoes();renderRoutes();renderValidacao();renderRelatorioPagamentos();populateCycle();renderExtract();renderLegacy();toast("Registro excluído.")}catch(ex){toast("Erro ao excluir: "+ex.message,false)}}
 });
 
 $("form-parametros").addEventListener("submit",async e=>{
@@ -1431,7 +1926,7 @@ $("btn-migrar-prestadores").addEventListener("click",async()=>{
    if(Object.keys(patch).length){await setDoc(doc(db,"rotas",r.id),patch,{merge:true});Object.assign(r,patch);changed++;}
   }
   prestadores=(await loadCollection("prestadores")).filter(p=>!p.mergedInto);
-  populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();renderRoutes();renderValidacao();renderLegacy();
+  populateSelects();populateCycle();renderExtract();renderRelatorioPagamentos();renderRequisicoes();renderRoutes();renderValidacao();renderLegacy();
   toast(`Migração concluída: ${changed} registro(s) vinculados.`);
  }catch(ex){console.error(ex);toast("Falha na migração: "+ex.message,false)}
 });
@@ -1451,9 +1946,9 @@ $("form-editar-antigo").addEventListener("submit",async e=>{
  const dt=$("antigo-data").value,cy=ciclo(dt),km=n($("antigo-km").value),toll=money("antigo-pedagio");
  const makePay=(p,tipo,diaria,adicional,aluguel=0,kmr=0,ped=0)=>({prestadorId:p.id,prestadorCodigo:p.codigo,prestadorNome:p.nome,apelido:p.apelido,tipo,diaria,adicional,aluguel,km:kmr,pedagio:ped,liquido:Math.round((diaria+adicional+aluguel)*100)/100,reembolso:Math.round((kmr+ped)*100)/100,total:Math.round((diaria+adicional+aluguel+kmr+ped)*100)/100,legacy:false,manualLegacyNormalization:true});
  const source=[makePay(mot,"motorista",vals.motD,vals.motA),makePay(seg,"seguranca",vals.segD,vals.segA),makePay(owner,"veiculo",0,0,vals.rent,vals.kmVal,vals.tollVal)];
- const grouped=new Map();for(const pay of source){if(!grouped.has(pay.prestadorId))grouped.set(pay.prestadorId,{...pay});else{const q=grouped.get(pay.prestadorId);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(pay[k]))*100)/100;q.tipo=q.tipo===pay.tipo?q.tipo:[q.tipo,pay.tipo].filter(Boolean).join("/");q.manualLegacyNormalization=true}}
+ const grouped=new Map();for(const pay of source){if(!grouped.has(pay.prestadorId))grouped.set(pay.prestadorId,{...pay});else{const q=map.get(key);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(pay[k]))*100)/100;q.tipo=q.tipo===pay.tipo?q.tipo:[q.tipo,pay.tipo].filter(Boolean).join("/");q.manualLegacyNormalization=true}}
  const payments=[...grouped.values()];const start=$("antigo-inicio").value,end=$("antigo-final").value;let mins=0;if(start&&end){const [h1,m1]=start.split(":").map(Number),[h2,m2]=end.split(":").map(Number);mins=(h2*60+m2)-(h1*60+m1);if(mins<0)mins+=1440}
- const patch={versaoSchema:2,data:dt,horaInicio:start,horaFinal:end,duracao:duration(mins),minutosDuracao:mins,atingiu5h30:(vals.motA>0||vals.segA>0),km,placa:v.placa,modeloVeiculoSnapshot:v.modelo,marcaVeiculoSnapshot:v.marca||"",veiculoId:v.id,proprietarioIdSnapshot:owner.id,proprietarioCodigoSnapshot:owner.codigo,proprietarioNomeSnapshot:owner.nome,motoristaId:mot.id,motoristaCodigoSnapshot:mot.codigo,motoristaNomeSnapshot:mot.nome,motorista:mot.apelido,segurancaId:seg.id,segurancaCodigoSnapshot:seg.codigo,segurancaNomeSnapshot:seg.nome,seguranca:seg.apelido,valDiaria:vals.motD,valAdic:vals.motA,valKm:vals.kmVal,valAluguel:vals.rent,pedagio:toll,pagamentos:payments,cicloId:cy.id,dataPagamento:cy.label,totalRota:payments.reduce((sum,p)=>sum+p.total,0),status:r.status||"validado",padronizadoEm:new Date().toISOString(),padronizadoPor:usuarioLogado.username,normalizacaoManual:true};
+ const patch={versaoSchema:2,data:dt,localInicio:r.localInicio||"Não informado",localFinal:r.localFinal||"Não informado",statusRequisicao:"registrado",horaInicio:start,horaFinal:end,duracao:duration(mins),minutosDuracao:mins,atingiu5h30:(vals.motA>0||vals.segA>0),km,placa:v.placa,modeloVeiculoSnapshot:v.modelo,marcaVeiculoSnapshot:v.marca||"",veiculoId:v.id,proprietarioIdSnapshot:owner.id,proprietarioCodigoSnapshot:owner.codigo,proprietarioNomeSnapshot:owner.nome,motoristaId:mot.id,motoristaCodigoSnapshot:mot.codigo,motoristaNomeSnapshot:mot.nome,motorista:mot.apelido,segurancaId:seg.id,segurancaCodigoSnapshot:seg.codigo,segurancaNomeSnapshot:seg.nome,seguranca:seg.apelido,valDiaria:vals.motD,valAdic:vals.motA,valKm:vals.kmVal,valAluguel:vals.rent,pedagio:toll,pagamentos:payments,cicloId:cy.id,dataPagamento:cy.label,totalRota:payments.reduce((sum,p)=>sum+p.total,0),status:r.status||"validado",padronizadoEm:new Date().toISOString(),padronizadoPor:usuarioLogado.username,normalizacaoManual:true};
 
  const btn=$("btn-salvar-antigo");btn.disabled=true;
  try{
@@ -1477,3 +1972,9 @@ $("btn-exportar-antigos").addEventListener("click",()=>{
 </script>
 </body>
 </html>
+"""
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print("Integração dos integrantes 1 e 2 na requisição concluída com sucesso!")
